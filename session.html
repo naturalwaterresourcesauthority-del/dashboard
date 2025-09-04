@@ -14,6 +14,8 @@
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
 
   <style>
     :root {
@@ -38,22 +40,23 @@
     .tabContent{display:none;}
     select,input,button{width:100%;margin:8px 0;padding:8px;border:1px solid var(--border);border-radius:6px}
     button{background:linear-gradient(180deg,var(--primary-light),var(--primary));color:#fff;font-weight:600;cursor:pointer}
+    .summary{font-size:12px;color:#555;margin-top:5px;}
+    .layerToggle{margin-bottom:10px;}
+    .legend{background:white;padding:8px;border-radius:6px;font-size:12px;line-height:18px;box-shadow:0 2px 6px rgba(0,0,0,0.3);}
+    .legend div{margin-bottom:4px;}
+    .legend span{display:inline-block;width:16px;height:16px;margin-right:6px;vertical-align:middle;}
   </style>
 </head>
 <body>
   <div id="topbar">
-   <div id="topbar">
-  <div>🌍 Malawi Groundwater Dashboard</div>
-  
-  <div style="display:flex;align-items:center;gap:15px;">
-    <div>
-      <span style="font-size:14px;">Total Yield:</span> 
-      <strong id="totalYield" style="color:yellow">0</strong> m³
+    <div>🌍 Malawi Groundwater Dashboard</div>
+    <div style="display:flex;align-items:center;gap:15px;">
+      <div>
+        <span style="font-size:14px;">Total Yield:</span> 
+        <strong id="totalYield" style="color:yellow">0</strong> m³
+      </div>
+      <img src="https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/nwra_logo.png" alt="NWRA Logo" style="height:45px;width:auto;background-color: white;">
     </div>
-    <img src="https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/nwra_logo.png.png" alt="NWRA Logo" style="height:45px;width:auto;background-color: white;">
-  </div>
-</div>
-
   </div>
 
   <div id="container">
@@ -92,41 +95,32 @@
         <!-- Aquifers -->
         <div id="aquifercontent" class="tabContent">
           <h3>Aquifer Map</h3>
-          <select id="aquiferClass">
-            <option value="all">All</option>
-            <option value="Basement Rock">Basement Rock</option>
-            <option value="Alluvial Sediment">Alluvial Sediment</option>
-            <option value="Weathered Basement">Weathered Basement</option>
-          </select>
+          <div class="layerToggle"><label><input type="checkbox" id="toggleAquifers" checked> Show Aquifers</label></div>
+          <label><input type="checkbox" class="aquiferFilter" value="Basement Rock" checked> Basement Rock</label><br>
+          <label><input type="checkbox" class="aquiferFilter" value="Alluvial Sediment" checked> Alluvial Sediment</label><br>
+          <label><input type="checkbox" class="aquiferFilter" value="Weathered Basement" checked> Weathered Basement</label><br>
+          <div class="summary" id="aquiferSummary">3 categories visible</div>
+          <button id="downloadAquifer">⬇️ Download Filtered Aquifers</button>
         </div>
 
         <!-- Geology -->
         <div id="geologycontent" class="tabContent">
           <h3>Geological Map</h3>
-          <select id="geoCategory">
-            <option value="all">All</option>
-            <option value="Lake">Lake</option>
-            <option value="Metamorphic Rocks">Metamorphic Rocks</option>
-            <option value="Magmatic Intrusions">Magmatic Intrusions</option>
-            <option value="Sedimentary Rocks">Sedimentary Rocks</option>
-            <option value="Sediments">Sediments</option>
-          </select>
+          <div class="layerToggle"><label><input type="checkbox" id="toggleGeology" checked> Show Geology</label></div>
+          <label><input type="checkbox" class="geoFilter" value="Lake" checked> Lake</label><br>
+          <label><input type="checkbox" class="geoFilter" value="Metamorphic Rocks" checked> Metamorphic Rocks</label><br>
+          <label><input type="checkbox" class="geoFilter" value="Magmatic Intrusions" checked> Magmatic Intrusions</label><br>
+          <label><input type="checkbox" class="geoFilter" value="Sedimentary Rocks" checked> Sedimentary Rocks</label><br>
+          <label><input type="checkbox" class="geoFilter" value="Sediments" checked> Sediments</label><br>
+          <div class="summary" id="geoSummary">5 categories visible</div>
+          <button id="downloadGeology">⬇️ Download Filtered Geology</button>
         </div>
 
         <!-- Faults -->
         <div id="faultscontent" class="tabContent">
           <h3>Fault Map</h3>
+          <div class="layerToggle"><label><input type="checkbox" id="toggleFaults" checked> Show Faults</label></div>
           <p>Fault lines displayed with attributes.</p>
-        </div>
-      </div>
-    </div>
-    <div id="map"></div>
-  </div>
-
-  <!-- Rivers -->
-        <div id="riverscontent" class="tabContent">
-          <h3>Rivers Map</h3>
-          <p>Rivers lines displayed with attributes.</p>
         </div>
       </div>
     </div>
@@ -139,8 +133,16 @@ const baseLayers = {
   "OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM contributors'}),
   "Google Hybrid": L.tileLayer('http://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google'})
 };
-const map = L.map('map',{center:[-13.9,33.8],zoom:7,layers:[baseLayers["OSM"]]});
+const map = L.map('map',{center:[-13.9,33.8],zoom:7,layers:[baseLayers["OSM"]]} );
 L.control.layers(baseLayers).addTo(map);
+
+/* ==== Search restricted to Malawi ==== */
+L.Control.geocoder({
+  defaultMarkGeocode: true,
+  geocoder: L.Control.Geocoder.nominatim({
+    geocodingQueryParams: { countrycodes: 'MW' }
+  })
+}).addTo(map);
 
 /* ==== Tabs ==== */
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -152,9 +154,38 @@ document.querySelectorAll(".tab").forEach(tab=>{
   });
 });
 
+/* ==== Legends ==== */
+const legendControl = L.control({position:"bottomright"});
+legendControl.onAdd = function(map){
+  this._div = L.DomUtil.create("div","legend");
+  this.update();
+  return this._div;
+};
+legendControl.update = function(content=""){ this._div.innerHTML = content; };
+legendControl.addTo(map);
+
+function showLegend(type){
+  let html = "<b>"+type+" Legend</b><br>";
+  if(type==="Aquifers"){
+    html += '<div><span style="background:#1f78b4"></span> Basement Rock</div>';
+    html += '<div><span style="background:#33a02c"></span> Alluvial Sediment</div>';
+    html += '<div><span style="background:#ff7f00"></span> Weathered Basement</div>';
+  } else if(type==="Geology"){
+    html += '<div><span style="background:#1f78b4"></span> Lake</div>';
+    html += '<div><span style="background:#6a3d9a"></span> Metamorphic Rocks</div>';
+    html += '<div><span style="background:#e31a1c"></span> Magmatic Intrusions</div>';
+    html += '<div><span style="background:#ff7f00"></span> Sedimentary Rocks</div>';
+    html += '<div><span style="background:#33a02c"></span> Sediments</div>';
+  } else if(type==="Faults"){
+    html += '<div><span style="background:#000;border:1px dashed #000;width:20px;height:2px;display:inline-block;margin-right:6px;"></span> Faults</div>';
+  }
+  legendControl.update(html);
+}
+function clearLegend(){ legendControl.update(""); }
+
 /* ==== Aquifers ==== */
-let aquiferLayer = L.layerGroup().addTo(map);
-fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/aquifer.geojson")
+let aquiferLayer;
+fetch("https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/aquifer.geojson")
   .then(r=>r.json()).then(geojson=>{
     aquiferLayer = L.geoJSON(geojson,{
       style:f=>{
@@ -162,23 +193,34 @@ fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main
         if(f.properties.AQ_Class==="Basement Rock")c="#1f78b4";
         if(f.properties.AQ_Class==="Alluvial Sediment")c="#33a02c";
         if(f.properties.AQ_Class==="Weathered Basement")c="#ff7f00";
-        return{color:c,fillOpacity:0.5};
+        return{color:c,weight:0.7,fillOpacity:0.5};
       },
-      onEachFeature:(f,l)=>l.bindPopup(`Aquifer: ${f.properties.AQ_Class}`)
+      onEachFeature:(f,l)=>{
+        l.bindPopup(`Aquifer: ${f.properties.AQ_Class}`);
+        l.on("mouseover",()=>l.setStyle({weight:2}));
+        l.on("mouseout",()=>l.setStyle({weight:0.7}));
+      }
     }).addTo(map);
+    showLegend("Aquifers");
   });
 
-document.getElementById("aquiferClass").addEventListener("change",e=>{
-  const val=e.target.value;
+function updateAquifers(){
+  const selected = Array.from(document.querySelectorAll(".aquiferFilter:checked")).map(x=>x.value);
   aquiferLayer.eachLayer(l=>{
-    const aq=l.feature.properties.AQ_Class;
-    l.setStyle({fillOpacity:(val==="all"||aq===val)?0.5:0});
+    const aq = l.feature.properties.AQ_Class;
+    l.setStyle({fillOpacity: selected.includes(aq)?0.5:0});
   });
+  document.getElementById("aquiferSummary").innerText = `${selected.length} categories visible`;
+}
+document.querySelectorAll(".aquiferFilter").forEach(cb=>cb.addEventListener("change",updateAquifers));
+document.getElementById("toggleAquifers").addEventListener("change",e=>{
+  if(e.target.checked){ map.addLayer(aquiferLayer); showLegend("Aquifers"); }
+  else{ map.removeLayer(aquiferLayer); clearLegend(); }
 });
 
 /* ==== Geology ==== */
-let geologyLayer = L.layerGroup().addTo(map);
-fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/geology.geojson")
+let geologyLayer;
+fetch("https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/geology.geojson")
   .then(r=>r.json()).then(geojson=>{
     geologyLayer = L.geoJSON(geojson,{
       style:f=>{
@@ -188,45 +230,68 @@ fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main
         if(f.properties.Category==="Magmatic Intrusions")c="#e31a1c";
         if(f.properties.Category==="Sedimentary Rocks")c="#ff7f00";
         if(f.properties.Category==="Sediments")c="#33a02c";
-        return{color:c,fillOpacity:0.6};
+        return{color:c,weight:0.7,fillOpacity:0.6};
       },
-      onEachFeature:(f,l)=>l.bindPopup(`Geology: ${f.properties.Category}`)
+      onEachFeature:(f,l)=>{
+        l.bindPopup(`Geology: ${f.properties.Category}`);
+        l.on("mouseover",()=>l.setStyle({weight:2}));
+        l.on("mouseout",()=>l.setStyle({weight:0.7}));
+      }
     }).addTo(map);
   });
 
-document.getElementById("geoCategory").addEventListener("change",e=>{
-  const val=e.target.value;
+function updateGeology(){
+  const selected = Array.from(document.querySelectorAll(".geoFilter:checked")).map(x=>x.value);
   geologyLayer.eachLayer(l=>{
-    const cat=l.feature.properties.Category;
-    l.setStyle({fillOpacity:(val==="all"||cat===val)?0.6:0});
+    const cat = l.feature.properties.Category;
+    l.setStyle({fillOpacity: selected.includes(cat)?0.6:0});
   });
+  document.getElementById("geoSummary").innerText = `${selected.length} categories visible`;
+}
+document.querySelectorAll(".geoFilter").forEach(cb=>cb.addEventListener("change",updateGeology));
+document.getElementById("toggleGeology").addEventListener("change",e=>{
+  if(e.target.checked){ map.addLayer(geologyLayer); showLegend("Geology"); }
+  else{ map.removeLayer(geologyLayer); clearLegend(); }
 });
 
 /* ==== Faults ==== */
-let faultsLayer = L.layerGroup().addTo(map);
-fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/faults.geojson")
+let faultsLayer;
+fetch("https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/faults.geojson")
   .then(r=>r.json()).then(geojson=>{
     faultsLayer = L.geoJSON(geojson,{
-      style:{color:"#000",weight:2,dashArray:"5,5"},
+      style:{color:"#000",weight:0.7,dashArray:"5,5"},
       onEachFeature:(f,l)=>l.bindPopup(`Fault: ${f.properties.Name||"N/A"}`)
     }).addTo(map);
   });
+document.getElementById("toggleFaults").addEventListener("change",e=>{
+  if(e.target.checked){ map.addLayer(faultsLayer); showLegend("Faults"); }
+  else{ map.removeLayer(faultsLayer); clearLegend(); }
+});
 
-
-/* ==== Rivers ==== */
-let riversLayer = L.layerGroup().addTo(map);
-fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/rivers.geojson")
-  .then(r=>r.json()).then(geojson=>{
-    riversLayer = L.geoJSON(geojson,{
-      style:{color:"#000",weight:2,dashArray:"5,5"},
-      onEachFeature:(f,l)=>l.bindPopup(`rivers: ${f.properties.Name||"N/A"}`)
-    }).addTo(map);
-  });  
+/* ==== Download Functions ==== */
+function downloadJSON(data, filename){
+  const blob = new Blob([JSON.stringify(data)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  a.click(); URL.revokeObjectURL(url);
+}
+document.getElementById("downloadAquifer").addEventListener("click",()=>{
+  const selected = Array.from(document.querySelectorAll(".aquiferFilter:checked")).map(x=>x.value);
+  const features = [];
+  aquiferLayer.eachLayer(l=>{
+    if(selected.includes(l.feature.properties.AQ_Class)) features.push(l.feature);
+  });
+  downloadJSON({type:"FeatureCollection",features}, "filtered_aquifers.geojson");
+});
+document.getElementById("downloadGeology").addEventListener("click",()=>{
+  const selected = Array.from(document.querySelectorAll(".geoFilter:checked")).map(x=>x.value);
+  const features = [];
+  geologyLayer.eachLayer(l=>{
+    if(selected.includes(l.feature.properties.Category)) features.push(l.feature);
+  });
+  downloadJSON({type:"FeatureCollection",features}, "filtered_geology.geojson");
+});
 </script>
 </body>
 </html>
-
-
-
-
-
