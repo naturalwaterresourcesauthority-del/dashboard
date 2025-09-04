@@ -50,7 +50,7 @@
       <span style="font-size:14px;">Total Yield:</span> 
       <strong id="totalYield" style="color:yellow">0</strong> m³
     </div>
-    <img src="nwra_logo.png.png" alt="NWRA Logo" style="height:45px;width:auto;background-color: white;">
+    <img src="https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/nwra_logo.png.png" alt="NWRA Logo" style="height:45px;width:auto;background-color: white;">
   </div>
 </div>
 
@@ -154,7 +154,7 @@ document.querySelectorAll(".tab").forEach(tab=>{
 
 /* ==== Aquifers ==== */
 let aquiferLayer = L.layerGroup().addTo(map);
-fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/aquifer.geojson")
+fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/aquifer.geojson")
   .then(r=>r.json()).then(geojson=>{
     aquiferLayer = L.geoJSON(geojson,{
       style:f=>{
@@ -178,7 +178,7 @@ document.getElementById("aquiferClass").addEventListener("change",e=>{
 
 /* ==== Geology ==== */
 let geologyLayer = L.layerGroup().addTo(map);
-fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/geology.geojson")
+fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/geology.geojson")
   .then(r=>r.json()).then(geojson=>{
     geologyLayer = L.geoJSON(geojson,{
       style:f=>{
@@ -204,7 +204,7 @@ document.getElementById("geoCategory").addEventListener("change",e=>{
 
 /* ==== Faults ==== */
 let faultsLayer = L.layerGroup().addTo(map);
-fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/faults.geojson")
+fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main/faults.geojson")
   .then(r=>r.json()).then(geojson=>{
     faultsLayer = L.geoJSON(geojson,{
       style:{color:"#000",weight:2,dashArray:"5,5"},
@@ -225,5 +225,6 @@ fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/rivers.geo
 </script>
 </body>
 </html>
+
 
 
