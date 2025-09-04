@@ -42,8 +42,18 @@
 </head>
 <body>
   <div id="topbar">
-    <div>🌍 Malawi Groundwater Dashboard</div>
-    <div><span style="font-size:14px;">Total Yield:</span> <strong id="totalYield" style="color:yellow">0</strong> m³</div>
+   <div id="topbar">
+  <div>🌍 Malawi Groundwater Dashboard</div>
+  
+  <div style="display:flex;align-items:center;gap:15px;">
+    <div>
+      <span style="font-size:14px;">Total Yield:</span> 
+      <strong id="totalYield" style="color:yellow">0</strong> m³
+    </div>
+    <img src="https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/nwra_logo.png.png" alt="NWRA Logo" style="height:45px;width:auto;background-color: white;">
+  </div>
+</div>
+
   </div>
 
   <div id="container">
@@ -54,6 +64,7 @@
         <div class="tab" data-tab="aquifer">🪨 Aquifers</div>
         <div class="tab" data-tab="geology">🌋 Geology</div>
         <div class="tab" data-tab="faults">⚡ Faults</div>
+        <div class="tab" data-tab="rivers">🌊 Rivers</div>
       </div>
 
       <div class="tab-content-container">
@@ -112,13 +123,23 @@
     <div id="map"></div>
   </div>
 
+  <!-- Rivers -->
+        <div id="riverscontent" class="tabContent">
+          <h3>Rivers Map</h3>
+          <p>Rivers lines displayed with attributes.</p>
+        </div>
+      </div>
+    </div>
+    <div id="map"></div>
+  </div>
+
 <script>
 /* ==== Base Maps ==== */
 const baseLayers = {
   "OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM contributors'}),
   "Google Hybrid": L.tileLayer('http://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google'})
 };
-const map=L.map('map',{center:[-13.9,33.8],zoom:7,layers:[baseLayers["OSM"]]});
+const map = L.map('map',{center:[-13.9,33.8],zoom:7,layers:[baseLayers["OSM"]]});
 L.control.layers(baseLayers).addTo(map);
 
 /* ==== Tabs ==== */
@@ -132,19 +153,21 @@ document.querySelectorAll(".tab").forEach(tab=>{
 });
 
 /* ==== Aquifers ==== */
-let aquiferLayer=L.layerGroup().addTo(map);
-fetch("data/Aquifer.geojson").then(r=>r.json()).then(geojson=>{
-  aquiferLayer=L.geoJSON(geojson,{
-    style:f=>{
-      let c="#999";
-      if(f.properties.AQ_Class==="Basement Rock")c="#1f78b4";
-      if(f.properties.AQ_Class==="Alluvial Sediment")c="#33a02c";
-      if(f.properties.AQ_Class==="Weathered Basement")c="#ff7f00";
-      return{color:c,fillOpacity:0.5};
-    },
-    onEachFeature:(f,l)=>l.bindPopup(`Aquifer: ${f.properties.AQ_Class}`)
-  }).addTo(map);
-});
+let aquiferLayer = L.layerGroup().addTo(map);
+fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/aquifer.geojson")
+  .then(r=>r.json()).then(geojson=>{
+    aquiferLayer = L.geoJSON(geojson,{
+      style:f=>{
+        let c="#999";
+        if(f.properties.AQ_Class==="Basement Rock")c="#1f78b4";
+        if(f.properties.AQ_Class==="Alluvial Sediment")c="#33a02c";
+        if(f.properties.AQ_Class==="Weathered Basement")c="#ff7f00";
+        return{color:c,fillOpacity:0.5};
+      },
+      onEachFeature:(f,l)=>l.bindPopup(`Aquifer: ${f.properties.AQ_Class}`)
+    }).addTo(map);
+  });
+
 document.getElementById("aquiferClass").addEventListener("change",e=>{
   const val=e.target.value;
   aquiferLayer.eachLayer(l=>{
@@ -154,21 +177,23 @@ document.getElementById("aquiferClass").addEventListener("change",e=>{
 });
 
 /* ==== Geology ==== */
-let geologyLayer=L.layerGroup().addTo(map);
-fetch("data/Geological.geojson").then(r=>r.json()).then(geojson=>{
-  geologyLayer=L.geoJSON(geojson,{
-    style:f=>{
-      let c="#ccc";
-      if(f.properties.Category==="Lake")c="#1f78b4";
-      if(f.properties.Category==="Metamorphic Rocks")c="#6a3d9a";
-      if(f.properties.Category==="Magmatic Intrusions")c="#e31a1c";
-      if(f.properties.Category==="Sedimentary Rocks")c="#ff7f00";
-      if(f.properties.Category==="Sediments")c="#33a02c";
-      return{color:c,fillOpacity:0.6};
-    },
-    onEachFeature:(f,l)=>l.bindPopup(`Geology: ${f.properties.Category}`)
-  }).addTo(map);
-});
+let geologyLayer = L.layerGroup().addTo(map);
+fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/geology.geojson")
+  .then(r=>r.json()).then(geojson=>{
+    geologyLayer = L.geoJSON(geojson,{
+      style:f=>{
+        let c="#ccc";
+        if(f.properties.Category==="Lake")c="#1f78b4";
+        if(f.properties.Category==="Metamorphic Rocks")c="#6a3d9a";
+        if(f.properties.Category==="Magmatic Intrusions")c="#e31a1c";
+        if(f.properties.Category==="Sedimentary Rocks")c="#ff7f00";
+        if(f.properties.Category==="Sediments")c="#33a02c";
+        return{color:c,fillOpacity:0.6};
+      },
+      onEachFeature:(f,l)=>l.bindPopup(`Geology: ${f.properties.Category}`)
+    }).addTo(map);
+  });
+
 document.getElementById("geoCategory").addEventListener("change",e=>{
   const val=e.target.value;
   geologyLayer.eachLayer(l=>{
@@ -178,13 +203,25 @@ document.getElementById("geoCategory").addEventListener("change",e=>{
 });
 
 /* ==== Faults ==== */
-let faultsLayer=L.layerGroup().addTo(map);
-fetch("data/faults.geojson").then(r=>r.json()).then(geojson=>{
-  faultsLayer=L.geoJSON(geojson,{
-    style:{color:"#000",weight:2,dashArray:"5,5"},
-    onEachFeature:(f,l)=>l.bindPopup(`Fault: ${f.properties.Name||"N/A"}`)
-  }).addTo(map);
-});
+let faultsLayer = L.layerGroup().addTo(map);
+fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/faults.geojson")
+  .then(r=>r.json()).then(geojson=>{
+    faultsLayer = L.geoJSON(geojson,{
+      style:{color:"#000",weight:2,dashArray:"5,5"},
+      onEachFeature:(f,l)=>l.bindPopup(`Fault: ${f.properties.Name||"N/A"}`)
+    }).addTo(map);
+  });
+
+
+/* ==== Rivers ==== */
+let riversLayer = L.layerGroup().addTo(map);
+fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/rivers.geojson")
+  .then(r=>r.json()).then(geojson=>{
+    riversLayer = L.geoJSON(geojson,{
+      style:{color:"#000",weight:2,dashArray:"5,5"},
+      onEachFeature:(f,l)=>l.bindPopup(`rivers: ${f.properties.Name||"N/A"}`)
+    }).addTo(map);
+  });  
 </script>
 </body>
 </html>
