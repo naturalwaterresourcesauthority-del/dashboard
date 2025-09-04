@@ -213,18 +213,19 @@ fetch("https://github.com/naturalwaterresourcesauthority-del/dashboard/blob/main
   });
 
 
-/* ==== Rivers ==== */
-let riversLayer = L.layerGroup().addTo(map);
-fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/rivers.geojson")
-  .then(r=>r.json()).then(geojson=>{
-    riversLayer = L.geoJSON(geojson,{
-      style:{color:"#000",weight:2,dashArray:"5,5"},
-      onEachFeature:(f,l)=>l.bindPopup(`rivers: ${f.properties.Name||"N/A"}`)
-    }).addTo(map);
-  });  
+// /* ==== Rivers ==== */
+// let riversLayer = L.layerGroup().addTo(map);
+// fetch("https://raw.githubusercontent.com/Hamza-Nkhumbwa/datasets/main/rivers.geojson")
+//   .then(r=>r.json()).then(geojson=>{
+//     riversLayer = L.geoJSON(geojson,{
+//       style:{color:"#000",weight:2,dashArray:"5,5"},
+//       onEachFeature:(f,l)=>l.bindPopup(`rivers: ${f.properties.Name||"N/A"}`)
+//     }).addTo(map);
+//   });  
 </script>
 </body>
 </html>
+
 
 
 
