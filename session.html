@@ -9,13 +9,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
 
   <style>
     :root {
@@ -45,6 +46,89 @@
     .legend{background:white;padding:8px;border-radius:6px;font-size:12px;line-height:18px;box-shadow:0 2px 6px rgba(0,0,0,0.3);}
     .legend div{margin-bottom:4px;}
     .legend span{display:inline-block;width:16px;height:16px;margin-right:6px;vertical-align:middle;}
+    .legend i {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border: 1px solid #999; /* optional, to make black visible */
+}
+
+
+    /* Saturday Borehole styles */
+    #boreholeSidebar h3 { margin-top:0; }
+    .layer-option { margin:6px 0; }
+    #countBox { margin-top:10px; font-weight:bold; color:#0077b6; }
+
+
+    /* ==== Monitoring Styles ==== */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  padding-top: 60px;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  overflow: auto;
+  background: rgba(0,0,0,0.6);
+}
+.modal-content {
+  background: #fff;
+  margin: auto;
+  padding: 20px;
+  border-radius: 12px;
+  width: 80%;
+  max-width: 900px;
+}
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.close:hover { color: black; }
+
+/* Search container */
+.search-container { position: relative; margin-bottom: 15px;right: 23px }
+.search-input { padding-left: 40px; }
+.search-icon {
+  position: absolute; left: 15px; top: 50%;
+  transform: translateY(-50%); color: var(--primary-light);
+  pointer-events: none;
+}
+
+/* Station info */
+.station-info {
+  background: #f0f8ff;
+  padding: 15px; border-radius: 8px;
+  border: 1px solid var(--border);
+  margin: 15px 0;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.info-item { display: flex; flex-direction: column; }
+.info-label { font-weight: 600; color: var(--primary); font-size: 12px; margin-bottom: 4px; }
+.info-value { color: var(--dark); font-size: 14px; }
+
+/* Radio buttons */
+.radio-group { display: flex; gap: 15px; margin: 10px 0; }
+.radio-option { display: flex; align-items: center; gap: 5px; }
+
+/* View buttons */
+#visualization-controls { margin: 10px 0; display: flex; gap: 10px; }
+.view-btn {
+  flex: 1;
+  background: linear-gradient(180deg,var(--primary-light),var(--primary));
+  color: #fff;
+  font-weight: 600;
+  padding: 8px;l
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
   </style>
 </head>
 <body>
@@ -52,8 +136,8 @@
     <div>🌍 Malawi Groundwater Dashboard</div>
     <div style="display:flex;align-items:center;gap:15px;">
       <div>
-        <span style="font-size:14px;">Total Yield:</span> 
-        <strong id="totalYield" style="color:yellow">0</strong> m³
+        <!-- <span style="font-size:14px;">Total Yield:</span> 
+        <strong id="totalYield" style="color:yellow">0</strong> m³ -->
       </div>
       <img src="https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/nwra_logo.png" alt="NWRA Logo" style="height:45px;width:auto;background-color: white;">
     </div>
@@ -71,26 +155,114 @@
       </div>
 
       <div class="tab-content-container">
-        <!-- Borehole -->
+        <!-- Borehole (from saturday.html) -->
         <div id="boreholecontent" class="tabContent" style="display:block">
-          <h3>Boreholes</h3>
-          <input id="boreholeCSV" type="file" accept=".csv">
-          <div id="boreholeSummary">Upload borehole CSV to view data.</div>
-          <button id="toggleHeatmap">Toggle Heatmap</button>
-          <button id="downloadBoreholeData">⬇️ Download Borehole Data</button>
+          <div id="boreholeSidebar">
+            <h3>💧 Borehole Data</h3>
+            <label><b>Upload Borehole CSV</b></label>
+            <input id="boreholeCSV" type="file" accept=".csv">
+
+            <input type="text" id="searchBox" placeholder="🔍 Search borehole by name...">
+            <div id="countBox">Total Boreholes: 0</div>
+
+            <div style="margin-top:15px;">
+              <b>Color Boreholes By:</b>
+              <div class="layer-option">
+                <input type="radio" name="boreholeLayer" value="depth"> Borehole Depth(m)
+              </div>
+              <div class="layer-option">
+                <input type="radio" name="boreholeLayer" value="swl"> Static Water Level(mbgl)
+              </div>
+              <div class="layer-option">
+                <input type="radio" name="boreholeLayer" value="yield"> Yield (l/s)
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Monitoring -->
-        <div id="monitorcontent" class="tabContent">
-          <h3>Monitoring Wells</h3>
-          <input id="monitorCSV" type="file" accept=".csv">
-          <select id="stationSelect"></select>
-          <select id="chartType">
-            <option value="line">Line Chart</option>
-            <option value="bar">Bar Chart</option>
-          </select>
-          <div id="monitorChart" style="height:300px"></div>
-        </div>
+        <!-- Monitoring Tab -->
+<div id="monitorcontent" class="tabContent">
+  <label><b>Upload Monitoring CSV</b></label>
+  <input id="monitorCSV" type="file" accept=".csv">
+
+  <div class="search-container">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="stationSearch" placeholder="Search for a station..." class="search-input">
+  </div>
+
+  <label><b>Select Station</b></label>
+  <select id="stationSelect"></select>
+
+  <div class="station-info" id="stationInfo" style="display: none;">
+    <div class="info-item"><span class="info-label">Station ID</span><span class="info-value" id="info-id">-</span></div>
+    <div class="info-item"><span class="info-label">Latitude</span><span class="info-value" id="info-lat">-</span></div>
+    <div class="info-item"><span class="info-label">Longitude</span><span class="info-value" id="info-lon">-</span></div>
+    <div class="info-item"><span class="info-label">Records</span><span class="info-value" id="info-records">-</span></div>
+  </div>
+
+  <label><b>Download Option</b></label>
+  <div class="radio-group">
+    <div class="radio-option">
+      <input type="radio" id="downloadAll" name="downloadOption" value="all" checked>
+      <label for="downloadAll">All Wells</label>
+    </div>
+    <div class="radio-option">
+      <input type="radio" id="downloadSingle" name="downloadOption" value="single">
+      <label for="downloadSingle">Single Well</label>
+    </div>
+  </div>
+
+  <button id="downloadMonitoringData" style="background:var(--secondary);">
+    ⬇️ Download Monitoring Data
+  </button>
+
+  <label><b>Chart Type</b></label>
+  <select id="chartType">
+    <option value="line">Line Chart</option>
+    <option value="bar">Bar Chart</option>
+    <option value="scatter">Scatter Plot</option>
+    <option value="box">Box Plot</option>
+  </select>
+
+  <div id="visualization-controls">
+    <button class="view-btn" id="normalViewBtn">📱 Normal View</button>
+    <button class="view-btn" id="maximizedViewBtn">📺 Maximize</button>
+  </div>
+
+  <div class="chart-container">
+    <div id="monitorChart" style="height:400px"></div>
+    <button id="downloadGraph" style="margin-top:15px; background:var(--secondary);">⬇️ Download Graph</button>
+  </div>
+</div>
+
+<!-- Maximized Monitoring Modal -->
+<div id="maximizedMonitoring" class="modal" style="display:none;">
+  <div class="modal-content">
+    <span class="close" id="closeMaximized">&times;</span>
+    <h2>📊 Maximized Monitoring View</h2>
+
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="maxStationSearch" placeholder="Search station..." class="search-input">
+    </div>
+
+    <label><b>Select Station</b></label>
+    <select id="maxStationSelect"></select>
+
+    <label><b>Chart Type</b></label>
+    <select id="maxChartType">
+      <option value="line">Line Chart</option>
+      <option value="bar">Bar Chart</option>
+      <option value="scatter">Scatter Plot</option>
+      <option value="box">Box Plot</option>
+    </select>
+
+    <div id="maxMonitorChart" style="height:600px; margin-top:20px;"></div>
+    <button id="downloadMaxGraph" style="margin-top:15px; background:var(--secondary);">⬇️ Download Graph</button>
+  </div>
+</div>
+
 
         <!-- Aquifers -->
         <div id="aquifercontent" class="tabContent">
@@ -154,7 +326,67 @@ document.querySelectorAll(".tab").forEach(tab=>{
   });
 });
 
-/* ==== Legends ==== */
+/* ==== Boreholes (from saturday.html) ==== */
+proj4.defs("EPSG:32736", "+proj=utm +zone=36 +south +datum=WGS84 +units=m +no_defs");
+function convertToLatLon(easting, northing){
+  return proj4("EPSG:32736","EPSG:4326",[easting, northing]);
+}
+let boreholeData = [];
+let boreholeMarkers = [];
+let activeLegend = null;
+let markerIndex = {};
+function getDepthColor(d){ return  d<=0.00001? '#000000' :d<=10? '#3288bd': d<=30? '#66c2a5': d<=45? '#abdda4': d<=60? '#e6f598': d<=80? '#fee08b': '#f46d43'; }
+function getSWLColor(d){ return d<=0.00001? '#000000' : d<=5? '#1a9850': d<=10? '#66bd63': d<=20? '#a6d96a': d<=40? '#fdae61': '#d73027'; }
+function getYieldColor(d){ return d<=0.00001? '#000000' : d<=0.25? '#4575b4': d<=0.5? '#74add1': d<=1? '#abd9e9': d<=3? '#fdae61': d<=5? '#f46d43': '#d73027'; } 
+
+function clearMarkers(){ boreholeMarkers.forEach(m=>map.removeLayer(m)); boreholeMarkers=[]; markerIndex={}; }
+function plotBoreholes(){
+  clearMarkers();
+  const selectedLayer = document.querySelector('input[name="boreholeLayer"]:checked');
+  let layerType = selectedLayer ? selectedLayer.value : null;
+  boreholeData.forEach(row=>{
+    if(!row.Easting || !row.Northing) return;
+    let [lon,lat] = convertToLatLon(parseFloat(row.Easting), parseFloat(row.Northing));
+    if(isNaN(lat)||isNaN(lon)) return;
+    let color = 'blue';
+    if(layerType==='depth' && row["Borehole Depth"]) color=getDepthColor(parseFloat(row["Borehole Depth"]));
+    if(layerType==='swl' && row["Static Water Level"]) color=getSWLColor(parseFloat(row["Static Water Level"]));
+    if(layerType==='yield' && row["Yield l/s"]) color=getYieldColor(parseFloat(row["Yield l/s"]));
+    const marker=L.circleMarker([lat,lon],{radius:6,fillColor:color,color:'#333',weight:1,opacity:1,fillOpacity:0.8}).addTo(map);
+    marker.bindTooltip(`<b>Name:</b> ${row.Name||'-'}<br><b>Driller:</b> ${row.Driller||'-'}<br><b>Date Drilled:</b> ${row["Date Drilled"]||'-'}<br><b>Abstraction/day:</b> ${row["Abstraction Volume per day"]||'-'}<br><b>District:</b> ${row.District||'-'}<br><b>Status:</b> ${row.Status||'-'}<br><b>Functionality:</b> ${row.Functionality||'-'}`);
+    boreholeMarkers.push(marker);
+    if(row.Name) markerIndex[row.Name.toLowerCase()]=marker;
+  });
+  updateLegend(layerType);
+  document.getElementById("countBox").innerText=`Total Boreholes: ${boreholeData.length}`;
+}
+function updateLegend(layerType){
+  if(activeLegend){ map.removeControl(activeLegend); activeLegend=null; }
+  if(!layerType) return;
+  activeLegend=L.control({position:'bottomright'});
+  activeLegend.onAdd=function(){
+    let div=L.DomUtil.create('div','legend');
+    if(layerType==='depth'){ div.innerHTML='<b>Borehole Depth (m)</b><br><i style="background:#000000"></i>0.00001-0.00002<br><br><i style="background:#3288bd"></i>1-10<br>   <i style="background:#66c2a5"></i>10-30<br><i style="background:#abdda4"></i>30-45<br><i style="background:#e6f598"></i>45-60<br><i style="background:#fee08b"></i>60-80<br><i style="background:#f46d43"></i>>80'; }
+    else if(layerType==='swl'){ div.innerHTML='<b>Static Water Level (m)</b><br><i style="background:#000000"></i>0.00001-0.00002<br><br><i style="background:#1a9850"></i>1-5<br><i style="background:#66bd63"></i>5-10<br><i style="background:#a6d96a"></i>10-20<br><i style="background:#fdae61"></i>20-40<br><i style="background:#d73027"></i>>40'; }
+    else if(layerType==='yield'){ div.innerHTML='<b>Yield (l/s)</b><br><i style="background:#000000"></i>0.00001-0.00002<br><br><i style="background:#4575b4"></i>0.1-0.25<br><i style="background:#74add1"></i>0.25-0.5<br><i style="background:#abd9e9"></i>0.5-1<br><i style="background:#fdae61"></i>1-3<br><i style="background:#f46d43"></i>3-5<br><i style="background:#d73027"></i>>5'; }
+    return div;
+  }
+  activeLegend.addTo(map);
+}
+document.getElementById('boreholeCSV').addEventListener('change',function(e){
+  const file=e.target.files[0]; if(!file) return;
+  Papa.parse(file,{header:true,dynamicTyping:true,complete:function(results){ boreholeData=results.data; plotBoreholes(); }});
+});
+document.querySelectorAll('input[name="boreholeLayer"]').forEach(radio=>radio.addEventListener('change',plotBoreholes));
+document.getElementById("searchBox").addEventListener("keyup",function(e){
+  if(e.key==="Enter"){
+    let query=e.target.value.trim().toLowerCase();
+    if(query&&markerIndex[query]){ let marker=markerIndex[query]; map.setView(marker.getLatLng(),14); marker.openTooltip(); }
+    else alert("Borehole not found!");
+  }
+});
+
+/* ==== Legends for Aquifer/Geology/Faults ==== */
 const legendControl = L.control({position:"bottomright"});
 legendControl.onAdd = function(map){
   this._div = L.DomUtil.create("div","legend");
@@ -292,6 +524,151 @@ document.getElementById("downloadGeology").addEventListener("click",()=>{
   });
   downloadJSON({type:"FeatureCollection",features}, "filtered_geology.geojson");
 });
+
+
+
+/* ==== Monitoring Data Handling ==== */
+let monitorData = {};
+let monitorStations = {};
+let monitoringCSVData = null;
+
+document.getElementById("monitorCSV").addEventListener("change", e => {
+  Papa.parse(e.target.files[0], {
+    header: true, dynamicTyping: true,
+    complete: (res) => {
+      monitorData = {}; monitorStations = {}; monitoringCSVData = res.data;
+
+      res.data.forEach(r => {
+        if (!r.station || !r.month || !r.year || !r.value) return;
+
+        if (!monitorData[r.station]) {
+          monitorData[r.station] = [];
+          monitorStations[r.station] = { id: r.station, lat: r.latitude, lon: r.longitude, records: 0 };
+        }
+
+        const monthMap = {
+          "January":0,"February":1,"March":2,"April":3,"May":4,"June":5,
+          "July":6,"August":7,"September":8,"October":9,"November":10,"December":11
+        };
+        let monthIndex = monthMap[r.month] ?? 0;
+        let date = new Date(r.year, monthIndex, 1);
+
+        monitorData[r.station].push({ x: date, y: r.value });
+        monitorStations[r.station].records++;
+      });
+
+      updateStationSelect(); updateMaximizedStationSelect();
+    }
+  });
+});
+
+function updateStationSelect() {
+  const sel = document.getElementById("stationSelect");
+  const searchTerm = document.getElementById("stationSearch").value.toLowerCase();
+  sel.innerHTML = "";
+  Object.keys(monitorData).filter(s => s.toLowerCase().includes(searchTerm)).forEach(s => {
+    let opt = document.createElement("option"); opt.value = s; opt.textContent = s; sel.appendChild(opt);
+  });
+  if (sel.options.length > 0) { sel.selectedIndex = 0; plotMonitor(); updateStationInfo(sel.value); }
+}
+document.getElementById("stationSearch").addEventListener("input", updateStationSelect);
+
+function updateStationInfo(st) {
+  const info = monitorStations[st];
+  if (info) {
+    document.getElementById("stationInfo").style.display = "grid";
+    document.getElementById("info-id").textContent = info.id;
+    document.getElementById("info-lat").textContent = info.lat ? info.lat.toFixed(4) : "-";
+    document.getElementById("info-lon").textContent = info.lon ? info.lon.toFixed(4) : "-";
+    document.getElementById("info-records").textContent = info.records;
+  } else { document.getElementById("stationInfo").style.display = "none"; }
+}
+
+function plotMonitor() {
+  const st = document.getElementById("stationSelect").value;
+  const type = document.getElementById("chartType").value;
+  if (!st || !monitorData[st]) return;
+
+  const sorted = [...monitorData[st]].sort((a,b)=>a.x - b.x);
+
+  let trace = {
+    x: sorted.map(d=>d.x),
+    y: sorted.map(d=>d.y),
+    type: type==='box'?'box':type,
+    mode: type==="scatter"?"markers":"lines+markers",
+    marker:{size:10,color:"#0082c8"},
+    line:{width:3,color:"#0082c8"},
+    name: st
+  };
+
+  Plotly.newPlot("monitorChart",[trace],{
+    title:`Monitoring - ${st}`,
+    xaxis:{ title:"Date", type:"date" },
+    yaxis:{ title:"Value" }
+  });
+}
+document.getElementById("stationSelect").addEventListener("change",()=>{plotMonitor(); updateStationInfo(document.getElementById("stationSelect").value);});
+document.getElementById("chartType").addEventListener("change",plotMonitor);
+
+document.getElementById("downloadMonitoringData").addEventListener("click", () => {
+  if (!monitoringCSVData?.length) return alert("No monitoring data available.");
+  let dataToDownload = monitoringCSVData;
+  if (document.querySelector('input[name="downloadOption"]:checked').value === "single") {
+    const st = document.getElementById("stationSelect").value;
+    dataToDownload = monitoringCSVData.filter(r=>r.station===st);
+  }
+  const headers = Object.keys(dataToDownload[0]);
+  const csvRows = [headers.join(',')];
+  dataToDownload.forEach(r=>csvRows.push(headers.map(h=>`"${r[h]||''}"`).join(',')));
+  const blob = new Blob([csvRows.join('\n')],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const link=document.createElement('a'); link.href=url; link.download='monitoring_data.csv'; link.click();
+});
+document.getElementById("downloadGraph").addEventListener("click",()=>{Plotly.downloadImage("monitorChart",{format:"png",filename:"monitoring_graph"});});
+
+/* ==== Maximized View ==== */
+const modal = document.getElementById("maximizedMonitoring");
+document.getElementById("maximizedViewBtn").addEventListener("click",()=>{modal.style.display="block"; updateMaximizedStationSelect();});
+document.getElementById("closeMaximized").addEventListener("click",()=>modal.style.display="none");
+window.addEventListener("click",(e)=>{if(e.target==modal) modal.style.display="none";});
+
+function updateMaximizedStationSelect() {
+  const sel = document.getElementById("maxStationSelect");
+  const searchTerm = document.getElementById("maxStationSearch").value.toLowerCase();
+  sel.innerHTML = "";
+  Object.keys(monitorData).filter(s=>s.toLowerCase().includes(searchTerm)).forEach(s=>{
+    let opt=document.createElement("option"); opt.value=s; opt.textContent=s; sel.appendChild(opt);
+  });
+  if (sel.options.length > 0) { sel.selectedIndex=0; plotMaxMonitor(); }
+}
+document.getElementById("maxStationSearch").addEventListener("input",updateMaximizedStationSelect);
+document.getElementById("maxStationSelect").addEventListener("change",plotMaxMonitor);
+document.getElementById("maxChartType").addEventListener("change",plotMaxMonitor);
+
+function plotMaxMonitor() {
+  const st = document.getElementById("maxStationSelect").value;
+  const type = document.getElementById("maxChartType").value;
+  if (!st || !monitorData[st]) return;
+
+  const sorted = [...monitorData[st]].sort((a,b)=>a.x - b.x);
+
+  let trace = {
+    x: sorted.map(d=>d.x),
+    y: sorted.map(d=>d.y),
+    type: type==='box'?'box':type,
+    mode: type==="scatter"?"markers":"lines+markers",
+    marker:{size:10,color:"#0082c8"},
+    line:{width:3,color:"#0082c8"},
+    name: st
+  };
+
+  Plotly.newPlot("maxMonitorChart",[trace],{
+    title:`Monitoring - ${st}`,
+    xaxis:{ title:"Date", type:"date" },
+    yaxis:{ title:"Value" }
+  });
+}
+document.getElementById("downloadMaxGraph").addEventListener("click",()=>{Plotly.downloadImage("maxMonitorChart",{format:"png",filename:"monitoring_graph_max"});});
+
 </script>
 </body>
 </html>
