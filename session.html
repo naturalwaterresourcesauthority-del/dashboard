@@ -30,7 +30,7 @@
       --danger: #ff4b5c;
     }
     html,body{margin:0;height:100%;font-family:'Segoe UI',sans-serif;background:#f0f7ff;}
-    #topbar{position:fixed;top:0;left:0;right:0;height:60px;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:1200;font-weight:600;font-size:20px}
+    #topbar{position:fixed;top:0;left:0;right:0;height:60px;background:#0A3D62;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:1200;font-weight:600;font-size:20px}
     #container{display:flex;margin-top:60px;height:calc(100vh - 60px);}
     #map{flex:1;height:100%;}
     #sidebar{width:440px;display:flex;flex-direction:row;background:#fff;border-right:1px solid var(--border);}
@@ -128,12 +128,17 @@
   border-radius: 6px;
   cursor: pointer;
 }
+/* ==== Status Styles ==== */
+#statuscontent h3 { margin-top:0; }
+#statusSearch { width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; margin:8px 0; }
+#statusCountBox { margin-top:10px; font-weight:bold; color:#0077b6; }
+
 
   </style>
 </head>
 <body>
   <div id="topbar">
-    <div>🌍 Malawi Groundwater Dashboard</div>
+    <div>🌍 NWRA Groundwater Dashboard</div>
     <div style="display:flex;align-items:center;gap:15px;">
       <div>
         <!-- <span style="font-size:14px;">Total Yield:</span> 
@@ -147,7 +152,9 @@
     <div id="sidebar">
       <div class="tabs-container">
         <div class="tab active" data-tab="borehole">💧 Borehole</div>
-        <div class="tab" data-tab="monitor">📊 Monitoring</div>
+        <div class="tab" data-tab="monitor">📊Ground Water Level Monitoring</div>
+        <div class="tab" data-tab="status">❓Monitoring Status</div>
+
         <div class="tab" data-tab="aquifer">🪨 Aquifers</div>
         <div class="tab" data-tab="geology">🌋 Geology</div>
         <div class="tab" data-tab="faults">⚡ Faults</div>
@@ -176,6 +183,7 @@
               <div class="layer-option">
                 <input type="radio" name="boreholeLayer" value="yield"> Yield (l/s)
               </div>
+
             </div>
           </div>
         </div>
@@ -262,6 +270,13 @@
     <button id="downloadMaxGraph" style="margin-top:15px; background:var(--secondary);">⬇️ Download Graph</button>
   </div>
 </div>
+<!-- Status Tab -->
+<div id="statuscontent" class="tabContent">
+  <h3>Status</h3>
+  <input type="text" id="statusSearch" placeholder="🔍 Search well by name...">
+  <div id="statusCountBox">Totals → Good: 0 | Vandalised: 0 | Abandoned: 0</div>
+</div>
+
 
 
         <!-- Aquifers -->
@@ -294,18 +309,50 @@
           <div class="layerToggle"><label><input type="checkbox" id="toggleFaults" checked> Show Faults</label></div>
           <p>Fault lines displayed with attributes.</p>
         </div>
-      </div>
-    </div>
-    <div id="map"></div>
-  </div>
+        <div id="riverscontent" class="tabContent">
+          <h3>Rivers Map</h3>
+          <div class="layerToggle"><label><input type="checkbox" id="toggleRivers" checked> Show Rivers</label></div>
+          <p>Rivers lines displayed with attributes.</p>
+        </div></div>
+    
+     </div>
+       <div id="map"></div>
+   <
 
 <script>
 /* ==== Base Maps ==== */
 const baseLayers = {
-  "OSM": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM contributors'}),
-  "Google Hybrid": L.tileLayer('http://mt0.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{attribution:'Google'})
+  "Carto Dark": L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
+  }),
+  "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }),
+  "Google Roadmap": L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}', {
+    attribution: 'Google'
+  }),
+  "Google Terrain": L.tileLayer('http://mt0.google.com/vt/lyrs=p&hl=en&x={x}&y={y}&z={z}', {
+    attribution: 'Google'
+  }),
+  "Google Satellite": L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', {
+    attribution: 'Google'
+  }),
+  "Google Hybrid": L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', {
+    attribution: 'Google'
+  })
 };
-const map = L.map('map',{center:[-13.9,33.8],zoom:7,layers:[baseLayers["OSM"]]} );
+
+/* ==== Map Initialization ==== */
+const map = L.map('map', {
+  center: [-13.9, 33.8],   // Malawi center
+  zoom: 7,
+  layers: [baseLayers["Carto Dark"]], 
+  maxZoom: 20
+});
+
+/* ==== Layer Control ==== */
 L.control.layers(baseLayers).addTo(map);
 
 /* ==== Search restricted to Malawi ==== */
@@ -410,7 +457,10 @@ function showLegend(type){
     html += '<div><span style="background:#33a02c"></span> Sediments</div>';
   } else if(type==="Faults"){
     html += '<div><span style="background:#000;border:1px dashed #000;width:20px;height:2px;display:inline-block;margin-right:6px;"></span> Faults</div>';
-  }
+  }else if(type==="Rivers"){
+  html += '<div><span style="background:#1f78b4;width:20px;height:2px;display:inline-block;margin-right:6px;"></span> Rivers</div>';
+}
+  
   legendControl.update(html);
 }
 function clearLegend(){ legendControl.update(""); }
@@ -499,6 +549,27 @@ document.getElementById("toggleFaults").addEventListener("change",e=>{
   if(e.target.checked){ map.addLayer(faultsLayer); showLegend("Faults"); }
   else{ map.removeLayer(faultsLayer); clearLegend(); }
 });
+
+/* ==== Rivers ==== */
+let riversLayer;
+fetch("https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/riverss.geojson")
+  .then(r=>r.json()).then(geojson=>{
+    // assign to the correct variable (riversLayer)
+    riversLayer = L.geoJSON(geojson,{
+      style:{color:"#1f78b4",weight:2},
+      onEachFeature:(f,l)=>l.bindPopup(`River: ${f.properties.Name||"N/A"}`)
+    }).addTo(map);
+  });
+
+// safe check before adding listener (element exists in corrected HTML)
+const toggleRiversEl = document.getElementById("toggleRivers");
+if(toggleRiversEl){
+  toggleRiversEl.addEventListener("change",e=>{
+    if(!riversLayer) return; // data might not be loaded yet
+    if(e.target.checked){ map.addLayer(riversLayer); showLegend("Rivers"); }
+    else{ map.removeLayer(riversLayer); clearLegend(); }
+  });
+}
 
 /* ==== Download Functions ==== */
 function downloadJSON(data, filename){
@@ -668,6 +739,115 @@ function plotMaxMonitor() {
   });
 }
 document.getElementById("downloadMaxGraph").addEventListener("click",()=>{Plotly.downloadImage("maxMonitorChart",{format:"png",filename:"monitoring_graph_max"});});
+
+/* ==== Status Wells ==== */
+let statusData = [];
+let statusMarkers = [];
+let statusMarkerIndex = {};
+let statusLegend = null;
+let statusLayerGroup = L.layerGroup().addTo(map);
+
+function getConditionColor(cond){
+  const c = cond ? cond.toLowerCase().trim() : "";
+  if(c==="good") return "blue";
+  if(c==="vandalised") return "red";
+  if(c==="abandoned") return "black";
+  return "gray";
+}
+
+function loadStatusData() {
+  Papa.parse("https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/Groundwater%20Monitoring%20Wells-All.csv", {
+    download: true,
+    header: true,
+    complete: function(res) {
+      statusData = res.data.filter(r => r["Easting "] && r["Northing"]);
+      plotStatusWells();
+    }
+  });
+}
+
+function clearStatusMarkers(){
+  statusLayerGroup.clearLayers();
+  statusMarkers = [];
+  statusMarkerIndex = {};
+}
+
+function plotStatusWells() {
+  clearStatusMarkers();
+  let counts = { good:0, vandalised:0, abandoned:0 };
+
+  statusData.forEach(row=>{
+    let [lon,lat] = convertToLatLon(parseFloat(row["Easting "]), parseFloat(row["Northing"]));
+    if(isNaN(lat)||isNaN(lon)) return;
+    const cond = row["Condition"] ? row["Condition"].trim() : "Unknown";
+    const color = getConditionColor(cond);
+
+    if(cond.toLowerCase()==="good") counts.good++;
+    else if(cond.toLowerCase()==="vandalised") counts.vandalised++;
+    else if(cond.toLowerCase()==="abandoned") counts.abandoned++;
+
+    const marker = L.circleMarker([lat,lon],{
+      radius:6,
+      fillColor:color,
+      color:'#333',
+      weight:1,
+      opacity:1,
+      fillOpacity:0.8
+    });
+    marker.bindTooltip(`
+      <b>Well:</b> ${row["Groundwater Monitoring Well"]||"-"}<br>
+      <b>District:</b> ${row.District||"-"}<br>
+      <b>Region:</b> ${row.Region||"-"}<br>
+      <b>Easting:</b> ${row["Easting "]||"-"}<br>
+      <b>Northing:</b> ${row.Northing||"-"}<br>
+      <b>Condition:</b> ${cond}
+    `);
+    marker.addTo(statusLayerGroup);
+    statusMarkers.push(marker);
+
+    if(row["Groundwater Monitoring Well"]) {
+      statusMarkerIndex[row["Groundwater Monitoring Well"].toLowerCase()] = marker;
+    }
+  });
+
+  document.getElementById("CondCountBox").innerText =
+    `Totals → Good: ${counts.good} | Vandalised: ${counts.vandalised} | Abandoned: ${counts.abandoned}`;
+
+  updateStatusLegend();
+}
+
+function updateStatusLegend(){
+  if(statusLegend){ map.removeControl(statusLegend); statusLegend=null; }
+  statusLegend = L.control({position:'bottomright'});
+  statusLegend.onAdd = function(){
+    let div = L.DomUtil.create('div','legend');
+    div.innerHTML = `
+      <b>Status Legend</b><br>
+      <i style="background:blue"></i> Good<br>
+      <i style="background:red"></i> Vandalised<br>
+      <i style="background:black"></i> Abandoned
+    `;
+    return div;
+  }
+  statusLegend.addTo(map);
+}
+
+/* ==== Search Well ==== */
+document.getElementById("statusSearch").addEventListener("keyup",function(e){
+  if(e.key==="Enter"){
+    let query=e.target.value.trim().toLowerCase();
+    if(query && statusMarkerIndex[query]){
+      let marker = statusMarkerIndex[query];
+      map.setView(marker.getLatLng(),14);
+      marker.openTooltip();
+    } else {
+      alert("Well not found!");
+    }
+  }
+});
+
+/* Load status wells on startup */
+loadStatusData();
 
 </script>
 </body>
