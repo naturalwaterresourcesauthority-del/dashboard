@@ -1,0 +1,75 @@
+No.,District,Name of Artesian well,Traditional Authority,X coordinates,Y coordinates,Eastings,Northing
+1,Balaka,Msunuzi artesian well 2,TA Nkaya,-15.289258,35.00996,715830.863,8308681.828
+2,Balaka,Meleka 2 artesian well,TA Nkaya,-15.298303,35.006868,715489.472,8307683.924
+3,Balaka,Msunuzi Artesian well 1,TA Nkaya,-15.288398,35.010517,715891.576,8308776.447
+4,Blantyre,Pasani artesian well 6,TA Kapeni,-15.646132,35.021027,716647.977,8269176.092
+5,Blantyre,Pasani Artesian well 1,TA Kapeni,-15.647542,35.021205,716665.579,8269019.866
+6,Blantyre,Kanyeteza Artesian well,TA Lundu,-15.37037,34.999905,714667.901,8299715.455
+7,Blantyre,Pasani 2 Artesian well,TA Kapeni,-15.647107,35.021171,716662.391,8269068.042
+8,Blantyre,Pasani Artesian,TA Kapeni,-15.646807,35.021105,716655.630,8269101.310
+9,Blantyre,Jordan Artesian well,TA Lundu,-15.495732,35.110933,726453.996,8285727.779
+10,Blantyre,Pasani artesian well 3,TA Kapeni,-15.646875,35.021122,716657.381,8269093.767
+11,Blantyre,Mkisi,Machinjiri,-15.757788,35.002402,714533.807,8256838.104
+12,Blantyre,Pasani artesian well 5,TA Kapeni,-15.646648,35.021042,716649.042,8269118.971
+13,Blantyre,Mulangeni artesian well,TA Chigalu,-15.376524,34.985226,713085.465,8299048.954
+14,Blantyre,Nkhondowe,Machinjiri,-15.74827,35.00706,715043.054,8257886.717
+15,Blantyre,Ndire,TA Somba,-15.917167,34.936507,707308.832,8239266.073
+16,Blantyre,Trinity,Kapeni,-15.784578,35.011695,715501.488,8253863.759
+17,Chikwawa,Chikhabado Artesian well,TA Maseya,-16.03684,34.911558,704515.447,8226046.860
+18,Chikwawa,Dwaliti village,Mgabu,-16.299306,34.842433,696857.453,8197068.080
+19,Chikwawa,Mbwezeni 2 Village,Mgabu,-15.839808,34.395711,649460.374,8248287.098
+20,Chikwawa,Bishop village,Mankhuwila,-16.243727,35.010055,714833.735,8203050.180
+21,Chikwawa,Kholongo Primary school,Mgabu,-16.300186,34.841102,696714.321,8196971.978
+22,Chikwawa,Mafale,Lindu,-16.291539,34.838537,696448.800,8197931.377
+23,Chikwawa,Kanyimbiri village artesian well,Mankhuwila,-16.267529,35.026519,716567.927,8200398.522
+24,Chikwawa,Kathengo,Mankhuwila,-16.270138,35.025046,716407.596,8200111.329
+25,Chikwawa,Balila village,Mgabu,-16.302265,34.841716,696777.867,8196741.311
+26,Chikwawa,Mwanakakula,Mgabu,-16.38346,34.931617,716407.596,8200111.329
+27,Karonga,Balabala,Kyungu,-10.126511,34.003406,696777.867,8196741.311
+28,Karonga,Chilambilo primary school,Kyungu,-9.946456,33.86724,595064.5638,8900383.24
+29,Karonga,Wovwe Baka,Mwilang'ombe,-10.305969,34.124438,623123.7706,8860542.024
+30,Karonga,Kayuni CDSS,Kyungu, , ,,
+31,Karonga,Ngisi School,Mwakawoko, , ,,
+32,Machinga,Liwonde LEA Artesian well,Sitola,-15.080,35.237,740446.8537,8331569.614
+33,Machinga,Maplot mosque artesian well,Sitola,-15.078,35.240,740809.8156,8331821.396
+34,Machinga,Kumbemba village artesian well,Sitola,-15.062,35.234,740202.349,8333579.347
+35,Machinga,Mliwo-chongwe artesian well,Stola,-15.112,35.237,740445.1094,8328015.701
+36,Machinga,Malindima artesian well,Sitola,-15.105,35.233,740022.0309,8328847.304
+37,Machinga,Liwonde LEA school artesian well 2,Sitola,-15.080,35.237,740474.4468,8331554.391
+38,Machinga,Malindima artesian well,Sitola,-15.104,35.237,740378.9916,8328925.695
+39,Machinga,Saiti village artesian well,Sitola,-15.077,35.245,741295.2771,8331903.343
+40,Machinga,Bandawe Artesian well,Sitola,-15.081,35.239,740674.418,8331462.809
+41,Machinga,Mtalika Artesian Well,Sitola,-15.110,35.246,741342.1393,8328297.997
+42,Machinga,Mliwo- subiri artesian well 2,Stola,-15.114,35.238,740511.007,8327834.272
+43,Machinga,Mgwalanga artesian well,Stola,-15.103,35.234,740072.3454,8329110.567
+44,Machinga,Mtubwi artesian well,Stola,-15.108,35.237,740440.7155,8328524.036
+45,Machinga,Shaffi artesian well,Sitola,-15.079,35.243,741069.5551,8331737.283
+46,Machinga,Mulipo artesian well,Sitola,-15.113,35.237,740395.2005,8327919.355
+47,Machinga,sangala Artesian well,Sitola,-15.111,35.258,742640.6252,8328202.777
+48,Mangochi,Liwembe Sambani,Chimwala,-14.752,35.202,737044.2082,8367947.131
+49,Mangochi,Liwembe sinoya,Chimwala,-14.753,35.204,737291.3624,8367876.971
+50,Mangochi,Luwembe Mandanda,Chimwala,-14.753,35.199,736764.2057,8367797.459
+51,Mangochi,Kalichero chigongolo,Chimwala,-14.734,35.189,735672.7328,8369928.578
+52,Mangochi,Kuwaya abiti lesitala,Chimwala,-14.739,35.190,735791.051,8369390.503
+53,Mangochi,Chisuphi,Chimwala,-14.723,35.180,734662.1672,8371202.153
+54,Mangochi,Chisuphi Nseu,Chimwala,-14.723,35.172,733880.7105,8371142.625
+55,Mangochi,Kambulire mosque,Chimwala,-14.706,35.176,734355.2479,8373041.666
+56,Mangochi,Kambulire,Chimwala,-14.709,35.175,734171.5888,8372764.63
+57,Mangochi,Kuwaya matope,Chimwala,-14.736,35.191,735839.2489,8369749.755
+58,Mangochi,Luwembe Daftala,Chimwala,-14.751,35.198,736585.1865,8368050.351
+59,Mangochi,Luwembe mosque,Chimwala,-14.750036,35.201598,737012.0505,8368161.066
+60,Mangochi,Namwiri school,Nankumba, , ,,
+61,Mwanza,"Kanduku 1, nkhaze",Kanduku,-15.564611,34.500216,660869.2768,8278658.764
+62,Mwanza,Enock,Govati, , ,,
+63,Neno,Misele,Symon,-15.290689,34.998651,714614.6091,8308534.676
+64,Neno,Kaligwenjere,Simoni,-15.323511,34.977909,712353.4526,8304922.842
+65,Ntchisi,Chisambi artesian well,kasakula,-13.376987,34.066116,615440.0711,8520925.602
+66,Ntchisi,Nkhalamba,Chikho,-13.418897,34.057998,614541.1197,8516293.85
+67,Ntchisi,Thundu,Kasakula,-13.379303,34.066473,615477.628,8520669.27
+68,Ntchisi,Matapa,Malenga,-13.333247,33.869307,594144.7211,8525846.566
+69,Ntchisi,Kachiza,Kasakula,-13.373875,34.09641,618722.2136,8521255.488
+70,Ntchisi,Basamtengavumba,, , ,,
+71,Salima,Mpatsanjoka 2,Maganga,-13.733025,34.56869,669616.721,8481248.16
+72,Salima,Chifuchambewa,Khombedza,-13.647298,34.156407,625076.9958,8490982.385
+73,Salima,Mpatsanjoka 3,Maganga,-13.732207,34.568745,669623.2577,8481338.617
+74,Salima,Mpatsanjoka 1,Maganga, , ,,
