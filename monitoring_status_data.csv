@@ -1,0 +1,80 @@
+No,Groundwater Monitoring Well,District,Region,Easting ,Northing,Condition
+1,Eng'congolweni Primary School,Mzimba,Northern,596113,8749637,Good 
+2,Bumba Primary School,Rumphi,Northern,592767,8781149,Vandalised
+3,Mzokoto Primary School,Rumphi,Northern,612636,8793840,Vandalised
+4,Mwasulama GVH residence,Karonga,Northern,598207,8925016,Good
+5,Lundu Primary School,Rumphi,Northern,580716,8792245,Good 
+6,Katowo Primary School,Rumphi,Northern,557171,8804880,Vandalised
+7,Nthalire WUA office,Chitipa,Northern,569809,8856026,Good 
+8,Mwenechendo,Chitipa,Northern,544770,8907186,Good 
+9,Chitipa wellfield,Chitipa,Northern,527762,8928500,Vandalised
+10,Chitipa water office,Chitipa,Northern,530736,8927908,Good
+11,Karonga Water Office,Karonga,Northern,601683,8901443,Good
+12,St Maria Goleti,Nkhatabay,Northern,638923,8716730,Good
+13,Msani Primary School,Nkhatabay,Northern,637880,8712346,Good 
+14,NRWB Intake,Karonga,Northern,596015,8901095,Vandalised
+15,Mlare Admarc,Karonga,Northern,612280,8876805,Good 
+16,Nyungwe ,Karonga,Northern,621290,8862480,Good 
+17,Champhira,Mzimba,Northern,566126,8635972,Good 
+18,Lura Health Center,Rumphi,Northern,614202,8814069,Good 
+19,Echilumbeni Primary School,Mzimba,Northern,532092,8724713,Vandalised
+20,Mwanza Prison,Mwanza,Southern,662539,8273903,Good 
+21,Chidole P. school,Mwanza,Southern,661256,8285708,Good 
+22,Msambang?be P. school,Mwanza,Southern,656856,8255413,Good 
+23,Malaka P. school,Blantyre,Southern,719634,8285776,Good 
+24,Chilomoni Police,Blantyre,Southern,712906,8255523,Good 
+25,Mpatseabwire,Blantyre,Southern,686075,8262782,Good 
+26,Mzedi,Blantyre,Southern,725667,8255643,Good 
+27,Mikaleti,Thyolo,Southern,743944,8227857,Good 
+28,"Mulanje Water Office, BH1",Mulanje,Southern,767932,8226724,abandoned
+29,"Mulanje Water Office, BH2 ",Mulanje,Southern,767979,8226736,Good
+30,Khwalala,Mulanje,Southern,748818,8260066,Good 
+31,Nansomba school,Phalombe,Southern,779288,8252136,Good 
+32,Migowi Water,Phalombe,Southern,789488,8260403,Vandalised
+34,Chitekese School,Phalombe,Southern,775408,8279188,Vandalised
+35,Chilayeni P. school,Phalombe,Southern,777808,8249935,Good 
+36,"Ngabu Water Office, BH1",Chikwawa,Southern,701903,8179766,abandoned
+37,"Ngabu Water Office, BH2",Chikwawa,Southern,701911,8179752,Good
+38,"Chikwawa Boma, BH1",Chikwawa,Southern,701903,8179766,abandoned
+39,"Chikwawa Boma, BH2",Chikwawa,Southern,701911,8179752,Good
+41,Mankhokwe camp,Chikwawa,Southern,678572,8198085,abandoned
+44,"Nsanje Water Office, BH1",Nsanje,Southern,740423,8127716,abandoned
+45,"Nsanje Water Office, BH2",Nsanje,Southern,740423,8127716,Good
+49,Chantulo Primary School,Mangochi,Southern,694637.6,8417337,Good 
+50,Monkebay Pvt Secondary School,Mangochi,Southern,707021.2,8441620,Vandalised
+51,Kasolo Primary School,Mangochi,Southern,733965.6,8368880.6,Vandalised
+52,Makumba Primary School,Mangochi,Southern,746570.9,8415729,Good 
+53,Kwilembe School,Mangochi,Southern,758814.7,8411729,Vandalised
+54,Mdinde Primary School,Mangochi,Southern,764371.3,8430883,Good 
+55,Namwela Well Field,Mangochi,Southern,770254.4,8410229,Good
+56,Nselema Police Unit,Machinga,Southern,774501.9,8370805,Good 
+57,Ntaja Water Office,Machinga,Southern,772052.5,8354777,Good 
+58,Kawombe Dam,Machinga,Southern,768518.8,8350889,Good
+59,Kawiya CCAP,Zomba,Southern,757572.4,8304854,Good 
+61,Nthembwe Primary School,Kasungu,Central,556635,8609344,Vandalised
+62,Linyangwa Primary School,Kasungu,Central,532184,8547543,Good 
+,Kasasanya Primary School,Kasungu,Central,546261,8584045,Good 
+63,Mwalawanyenje CDSS,Kasungu,Central,548247,8555424,Good 
+64,Chigudu FP School,Dowa,Central,597020,8501430,Good 
+65,Chinkhuti CDSS,Dowa,Central,587401,8479196,Good 
+66,Chaliwa Dam,Dowa,Central,593610,8492062,Good
+67,Mlezi FP School,Lilongwe,Central,586212,8472134,Good 
+68,Kakuyu Dam,Lilongwe,Central,541374,8449051,Good 
+69,Chileka Water Office,Lilongwe,Central,541760,8449919,Good
+70,Magweru FP School,Lilongwe,Central,577671,8413596,Good 
+71,Nathenje FP School,Lilongwe,Central,595977,8442534,Good 
+72,Linthipe,Lilongwe,Central,621367,8430606,Good 
+73,Mchinji Water Office,Mchinji,Central,489223,8475740,Good 
+74,Mokhoto FP school,Ntcheu,Central,695910,8319927,Good 
+75,Ntcheu Hospital,Ntcheu,Central,676431,8361068,Good
+76,Mpira dam,Ntcheu,Central,687063,8348022,Good 
+77,Kambwiri Sele Irrigation,Salima,Central,651012,8479029,Good 
+78,Kuti Well Field,Salima,Central,652514,8478595,Good 
+79,Katelera FP School,Salima,Central,655557,8469885,Good 
+80,Mchepa FP School,Salima,Central,638854,8502273,Good 
+81,Liwaladzi FP School,Nkhotakota,Central,626619,8604505,Good 
+82,Phakwe FP School,Nkhotakota,Central,638039,8524400,Good 
+83,Mkaika FP School,Nkhotakota,Central,639504,8537552,Good 
+84,Kamala FP School,Nkhotakota,Central,627767,8589067,Good 
+85,Chitenje Well field,Nkhotakota,Central,637475,8570250,Good 
+86,Nkhotakota Water Office,Nkhotakota,Central,639641,8570762,Good 
