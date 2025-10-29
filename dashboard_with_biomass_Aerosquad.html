@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>BIOMASS IDENTIFICATION, THYOLO DISTRICT USING DRONES</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- PapaParse for CSV parsing -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<!-- Chart.js for pie chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+:root {
+  --primary: #005aa7;
+  --primary-light: #0082c8;
+  --secondary: #00a86b;
+  --accent: #ff9800;
+  --lighter: #e6f2ff;
+  --dark: #003366;
+  --border: #c0d8f0;
+}
+html,body{margin:0;height:100%;font-family:'Segoe UI',sans-serif;background:#f0f7ff;}
+#topbar{position:fixed;top:0;left:0;right:0;height:60px;background:#0A3D62;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:1200;font-weight:600;font-size:18px}
+#container{display:flex;margin-top:60px;height:calc(100vh - 5px);}
+#map{flex:1;height:122%;transition: all 0.4s ease;}
+#sidebar{width:440px;display:flex;flex-direction:row;background:#fff;border-right:1px solid var(--border);transition:transform 0.3s ease;}
+.tabs-container{width:150px;background:var(--lighter);display:flex;flex-direction:column;}
+.tab{padding:15px;text-align:center;margin:4px;cursor:pointer;border-radius:8px;background:#d9e9ff;font-weight:600}
+.tab.active{background:linear-gradient(180deg,var(--primary-light),var(--primary));color:#fff}
+.tab-content-container{flex:1;overflow-y:auto;padding:15px;box-sizing:border-box;background:white;}
+.tabContent{display:none;}
+select,input,button{width:100%;margin:8px 0;padding:8px;border:1px solid var(--border);border-radius:6px}
+button{background:linear-gradient(180deg,var(--primary-light),var(--primary));color:#fff;font-weight:600;cursor:pointer}
+
+/* Search bar */
+.search-box { display:flex; align-items:center; background:#fff; padding:4px 10px; border-radius:6px; }
+.search-box input { border:none; outline:none; padding:6px; font-size:14px; width:220px; }
+
+/* Sidebar toggle + map full width mode */
+#sidebar.hidden {transform: translateX(-100%);} 
+#map.fullscreen {width:100vw !important; height:calc(100vh - 60px) !important; margin-left:0; position:absolute; top:60px; left:0; z-index:1000;}
+#toggleSidebar { position: fixed; top: 130px; left: 440px; z-index: 1500; background: #00a86b; color:#fff; border:none; border-radius:0 6px 6px 0; padding:6px 8px; cursor:pointer; font-size:14px; transition:left 0.3s ease; }
+#sidebar.hidden + #toggleSidebar { left: 0; }
+
+/* Legend */
+.legend { background: white; padding:8px; border-radius:6px; font-size:13px; line-height:20px; box-shadow:0 2px 6px rgba(0,0,0,0.15); margin-top:8px; }
+.legend i { display:inline-block; width:18px; height:16px; margin-right:8px; border-radius:3px; vertical-align:middle; }
+
+/* small UI tweaks */
+.small-label { font-size:13px; color:#333; font-weight:600; margin-top:6px; display:block;}
+.toggle-row { display:flex; align-items:center; gap:10px; margin:8px 0; }
+.toggle-row input[type="checkbox"] { width:18px; height:18px; }
+
+/* Chart area */
+.chart-container { width:100%; max-width:360px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div>🌿 BIOMASS IDENTIFICATION, THYOLO DISTRICT USING DRONES</div>
+  <div class="search-box">
+    <input id="searchInput" placeholder="Search area around Thyolo (type & Enter)..." />
+  </div>
+</div>
+
+<div id="container">
+  <div id="sidebar">
+    <div class="tabs-container">
+      <div class="tab active" data-tab="areasTab">Areas Having Biomass</div>
+      <div class="tab" data-tab="biomassMapTab">Biomass Map</div>
+      <div class="tab" data-tab="accessibilityTab">Accessibility</div>
+      <div class="tab" data-tab="inputsTab">Inputs</div>
+      <div class="tab" data-tab="beneficiariesTab">Beneficiaries</div>
+    </div>
+
+    <div class="tab-content-container">
+      <!-- AREAS HAVING BIOMASS -->
+      <div id="areasTab" class="tabContent" style="display:block;">
+        <h3>Areas Having Biomass (Ground Control Points)</h3>
+
+        <div class="toggle-row">
+          <input type="checkbox" id="gcpToggle" />
+          <label for="gcpToggle" class="small-label">Show Ground Control Points (from GitHub CSV)</label>
+        </div>
+
+        
+    <div class="toggle-row">
+      <input type="checkbox" id="bufferToggle" />
+      <label for="bufferToggle" class="small-label">Show Biomass Range Extents (Rectangular Buffers)</label>
+    </div>
+
+    <!-- Legend (hidden until data loaded and toggled) -->
+    
+        <div id="gcpLegend" class="legend" style="display:none;">
+          <strong>Biomass (kg) Legend</strong>
+          <div style="margin-top:6px;">
+            <div><i style="background:#fdae61"></i> Unknown</div>
+            <div><i style="background:#3288bd"></i> 10 - 50</div>
+            <div><i style="background:#66c2a5"></i> 50 - 100</div>
+            <div><i style="background:#abdda4"></i> 100 - 150</div>
+            <div><i style="background:#e6f598"></i> 150 - 200</div>
+            <div><i style="background:#fee08b"></i> 200 - 250</div>
+            <div><i style="background:#f46d43"></i> &gt; 250</div>
+          </div>
+        </div>
+
+        <!-- Pie Chart -->
+        <div id="gcpChartWrap" class="chart-container" style="display:none;">
+          <canvas id="gcpPieChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Biomass Map placeholder -->
+      <div id="biomassMapTab" class="tabContent">
+        <h3>Biomass Map</h3>
+        <p>This layer shows areas with varying vegetation biomass density. Greener areas represent high biomass (dense forest and vegetation), while lighter colors represent low biomass (open or degraded land).</p>
+        <div id="biomassLegend" class="legend" style="margin-top:10px;">
+          <b>🌲 Biomass Density</b><br/>
+          <div><span style="background:#00441b; width:15px; height:15px; display:inline-block;"></span> Very High Biomass</div>
+          <div><span style="background:#1b7837; width:15px; height:15px; display:inline-block;"></span> High Biomass</div>
+          <div><span style="background:#a6dba0; width:15px; height:15px; display:inline-block;"></span> Moderate Biomass</div>
+          <div><span style="background:#f7f7f7; width:15px; height:15px; display:inline-block;"></span> Low Biomass</div>
+        </div>
+      </div>
+
+      <div id="accessibilityTab" class="tabContent">
+        <h3>Accessibility</h3>
+        <p>Accessibility tools placeholder.</p>
+      </div>
+
+      <div id="inputsTab" class="tabContent">
+        <h3>Inputs</h3>
+        <p>Toggle raster inputs (LULC, Biomass, Carbon, NDVI) and adjust opacity for each layer.</p>
+
+        <div class="toggle-row" style="align-items:center;">
+          <input type="checkbox" id="lulcToggle" />
+          <label for="lulcToggle" class="small-label">LULC (tiles)</label>
+          <input type="range" id="lulcOpacity" min="0" max="1" step="0.1" value="0.7" style="margin-left:8px;flex:1;">
+        </div>
+
+        <div class="toggle-row" style="align-items:center;">
+          <input type="checkbox" id="biomassToggle" />
+          <label for="biomassToggle" class="small-label">Biomass (tiles)</label>
+          <input type="range" id="biomassOpacity" min="0" max="1" step="0.1" value="0.7" style="margin-left:8px;flex:1;">
+        </div>
+
+        <div class="toggle-row" style="align-items:center;">
+          <input type="checkbox" id="carbonToggle" />
+          <label for="carbonToggle" class="small-label">Carbon (tiles)</label>
+          <input type="range" id="carbonOpacity" min="0" max="1" step="0.1" value="0.7" style="margin-left:8px;flex:1;">
+        </div>
+
+        <div class="toggle-row" style="align-items:center;">
+          <input type="checkbox" id="ndviToggle" />
+          <label for="ndviToggle" class="small-label">NDVI (tiles)</label>
+          <input type="range" id="ndviOpacity" min="0" max="1" step="0.1" value="0.7" style="margin-left:8px;flex:1;">
+        
+<div id="lulcLegend" class="legend" style="display:none; margin-top:10px;">
+<b>🌍 Land Use / Land Cover (LULC) Legend</b><br/>
+<div><i style="background:#e06422"></i> Built-up</div>
+<div><i style="background:#1ba860"></i> Tree Plantation</div>
+<div><i style="background:#d1ff07"></i> Agriculture</div>
+<div><i style="background:#006400"></i> Trees</div>
+<div><i style="background:#f421ff"></i> Shrubs</div>
+<div><i style="background:#00ffff"></i> Herbaceous</div>
+<div><i style="background:#a9a9a9"></i> Bare Area</div>
+<div><i style="background:#2203c2"></i> Water</div>
+</div>
+
+</div>
+
+      </div>
+
+      <!-- BENEFICIARIES -->
+      <div id="beneficiariesTab" class="tabContent">
+        <h3>Beneficiaries (Factory.csv)</h3>
+
+        <div class="toggle-row">
+          <input type="checkbox" id="factoryToggle" />
+          <label for="factoryToggle" class="small-label">Show Beneficiaries (from GitHub CSV)</label>
+        </div>
+
+        <div id="factoryInfo" style="margin-top:8px; font-size:13px; color:#333;">
+          Toggle the layer ON to view beneficiaries on the map. Click a marker to see details.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toggle Sidebar button -->
+  <button id="toggleSidebar">⮜</button>
+
+  <!-- MAP -->
+  <div id="map"></div>
+</div>
+
+<script>
+/* ------------------- Map init ------------------- */
+const map = L.map('map').setView([-15.899413, 35.224002], 13);
+
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'], attribution: '&copy; Google Satellite' });
+
+L.control.layers({ "OpenStreetMap": osm, "Google Satellite": googleSat }).addTo(map);
+
+/* ------------------- Tabs ------------------- */
+const tabEls = document.querySelectorAll('.tab');
+const tabContents = document.querySelectorAll('.tabContent');
+tabEls.forEach(t => t.addEventListener('click', () => {
+  tabEls.forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  tabContents.forEach(c => c.style.display = 'none');
+  document.getElementById(t.dataset.tab).style.display = 'block';
+}));
+
+/* ------------------- Sidebar toggle (full map) ------------------- */
+const sidebar = document.getElementById('sidebar');
+const toggleBtn = document.getElementById('toggleSidebar');
+toggleBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('hidden');
+  const mapEl = document.getElementById('map');
+  mapEl.classList.toggle('fullscreen');
+  toggleBtn.textContent = mapEl.classList.contains('fullscreen') ? '⮜' : '⮞';
+  setTimeout(()=>map.invalidateSize(), 220);
+});
+
+/* ------------------- Geocoding simple search (Nominatim) ------------------- */
+document.getElementById('searchInput').addEventListener('keypress', function(e){
+  if(e.key === 'Enter'){
+    const q = this.value.trim();
+    if(!q) return;
+    // Use Nominatim to search
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ", Thyolo, Malawi")}`)
+      .then(r => r.json())
+      .then(res => {
+        if(res && res.length>0){
+          const first = res[0];
+          const bbox = first.boundingbox.map(Number);
+          const southWest = [bbox[0], bbox[2]];
+          const northEast = [bbox[1], bbox[3]];
+          map.fitBounds([southWest, northEast]);
+        } else alert('No results found for: ' + q);
+      })
+      .catch(err => { console.error(err); alert('Search error'); });
+  }
+});
+
+/* ------------------- Datasets URLs ------------------- */
+const gcpCSV = 'https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/groundcontrolpoints.csv';
+const factoryCSV = 'https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/Factory.csv';
+
+/* Layer holders */
+let gcpLayerGroup = L.layerGroup();
+
+// --- Rectangular Buffer Layer ---
+let bufferLayerGroup = L.layerGroup();
+
+
+
+function drawBuffers(){
+  if(!gcpData) return;
+  bufferLayerGroup.clearLayers();
+
+  const importantIDs = ['013','012','020','015','029','023','006','007','036','014','010','008','009'];
+
+  // iterate through markers in gcpLayerGroup to ensure rectangles match visible markers
+  const markerLayers = gcpLayerGroup.getLayers ? gcpLayerGroup.getLayers() : [];
+  for(const marker of markerLayers){
+    if(!marker || !marker.getLatLng) continue;
+    const ll = marker.getLatLng();
+    let lat = Number(ll.lat);
+    let lon = Number(ll.lng);
+
+    // try to get record attached to marker; fallback to matching gcpData by coordinates or id
+    const row = marker.record ?? (gcpData.find(r => {
+      // match by id if available
+      const rid = (r.id ?? r.ID ?? '').toString().trim();
+      if(rid && marker.options && marker.options.title && marker.options.title.includes(rid)) return true;
+      // else match by coordinates approximately
+      const rlat = Number(r.latitude ?? r.lat ?? r.Lat ?? r.Y ?? r.y);
+      const rlon = Number(r.longitude ?? r.lon ?? r.Longitude ?? r.X ?? r.x);
+      if(!isNaN(rlat) && !isNaN(rlon)){
+        return Math.abs(rlat - lat) < 1e-6 && Math.abs(rlon - lon) < 1e-6;
+      }
+      return false;
+    })) ?? {};
+
+    // parse biomass robustly
+    const biomass = Number(row.biomass_kg ?? row.BIOMASS_KG ?? row.biomass ?? row.Biomass ?? row.biomasskg ?? row.BIOMASS ?? 0) || 0;
+    const c = biomassColor(biomass);
+
+    // compute size based on biomass but ensure minimum visual size
+    let width = 30, height = 15; // default visible size
+    if(biomass>=10 && biomass<=50){ width=30; height=15; }
+    else if(biomass>50 && biomass<=100){ width=40; height=20; }
+    else if(biomass>100 && biomass<=150){ width=60; height=30; }
+    else if(biomass>150 && biomass<=200){ width=80; height=40; }
+    else if(biomass>200 && biomass<=250){ width=100; height=50; }
+    else if(biomass>250){ width=120; height=60; }
+    else if(biomass === 0){ width = 24; height = 12; } // small but visible when biomass missing
+
+    const dLat = height / 111320;
+    const dLon = width / (111320 * Math.cos(lat*Math.PI/180));
+
+    const rectangle = L.rectangle([
+      [lat - dLat, lon - dLon],
+      [lat + dLat, lon + dLon]
+    ], { color: c, weight: 1, fillColor: c, fillOpacity: 0.4 });
+
+    let html = '<div style="font-size:13px">';
+    for(const k in row) html += `<strong>${k}:</strong> ${row[k]}<br/>`;
+    html += '</div>';
+    rectangle.bindPopup(html);
+    rectangle.addTo(bufferLayerGroup);
+  }
+}
+
+
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const bufferToggle = document.getElementById('bufferToggle');
+  if(bufferToggle){
+    bufferToggle.addEventListener('change', async function(){
+      if(this.checked){
+        if(!gcpData) await loadGCPs();
+        drawBuffers();
+        bufferLayerGroup.addTo(map);
+      } else {
+        map.removeLayer(bufferLayerGroup);
+      }
+    });
+  }
+});
+
+let factoryLayerGroup = L.layerGroup();
+
+/* Biomass legend colors and ranges */
+const biomassRanges = [
+  { label: 'Unknown', color: '#fdae61', test: v => v === null || v === '' || isNaN(v) },
+  { label: '10-50', color: '#3288bd', test: v => v >= 10 && v <= 50 },
+  { label: '50-100', color: '#66c2a5', test: v => v > 50 && v <= 100 },
+  { label: '100-150', color: '#abdda4', test: v => v > 100 && v <= 150 },
+  { label: '150-200', color: '#e6f598', test: v => v > 150 && v <= 200 },
+  { label: '200-250', color: '#fee08b', test: v => v > 200 && v <= 250 },
+  { label: '>250', color: '#f46d43', test: v => v > 250 }
+];
+
+/* Utility: determine color for biomass value */
+function biomassColor(val){
+  const v = (val === null || val === '') ? NaN : Number(val);
+  for(const r of biomassRanges){
+    try {
+      if(r.test(v)) return r.color;
+    } catch(e){
+      // ignore
+    }
+  }
+  return '#999';
+}
+
+/* ------------------- Load GCP CSV and render points ------------------- */
+let gcpData = null; // store parsed records for chart usage
+
+function loadGCPs(){
+  return new Promise((resolve, reject) => {
+    Papa.parse(gcpCSV, {
+      download: true,
+      header: true,
+      dynamicTyping: false,
+      skipEmptyLines: true,
+      complete: (results)=>{
+        gcpData = results.data;
+        // create markers
+        gcpLayerGroup.clearLayers();
+        const bounds = [];
+        for(const row of gcpData){
+          // Expect columns like latitude/longitude, or lat/lon variants. Try common names.
+          const lat = row.latitude ?? row.lat ?? row.LAT ?? row.Lat ?? row.Y ?? row.y;
+          const lon = row.longitude ?? row.lon ?? row.long ?? row.LON ?? row.Lon ?? row.X ?? row.x;
+          if(!lat || !lon) continue;
+          const latN = Number(lat);
+          const lonN = Number(lon);
+          if(Number.isNaN(latN) || Number.isNaN(lonN)) continue;
+
+          // Use biomass_kg column to color. Try multiple case options.
+          const biomassValue = row.biomass_kg ?? row.BIOMASS_KG ?? row.biomass ?? row.Biomass ?? row.biomasskg ?? row.BIOMASS;
+          const c = biomassColor(biomassValue);
+
+          const marker = L.circleMarker([latN, lonN], {
+            radius: 6,
+            fillColor: c,
+            color: '#222',
+            weight: 0.6,
+            fillOpacity: 0.9
+          });
+
+          // Build popup content with all attributes
+          let popupHtml = '<div style="font-size:13px">';
+          // attach original CSV row to the marker for buffer drawing
+          try { marker.record = row; } catch(e){}
+          for(const key of Object.keys(row)){
+            popupHtml += `<strong>${key}:</strong> ${row[key] ?? ''}<br/>`;
+          }
+          popupHtml += '</div>';
+          marker.bindPopup(popupHtml);
+          marker.addTo(gcpLayerGroup);
+          bounds.push([latN, lonN]);
+        }
+        resolve({bounds});
+      },
+      error: (err)=> reject(err)
+    });
+  });
+}
+
+/* ------------------- Load Factory CSV and render points ------------------- */
+function loadFactories(){
+  return new Promise((resolve, reject) => {
+    Papa.parse(factoryCSV, {
+      download: true,
+      header: true,
+      dynamicTyping: false,
+      skipEmptyLines: true,
+      complete: (results)=>{
+        const data = results.data;
+        factoryLayerGroup.clearLayers();
+        const bounds = [];
+        for(const row of data){
+          const lat = row.latitude ?? row.lat ?? row.Latitude ?? row.Y ?? row.y;
+          const lon = row.longitude ?? row.lon ?? row.Longitude ?? row.X ?? row.x;
+          if(!lat || !lon) continue;
+          const latN = Number(lat);
+          const lonN = Number(lon);
+          if(Number.isNaN(latN) || Number.isNaN(lonN)) continue;
+
+          const marker = L.marker([latN, lonN]);
+          let popupHtml = '<div style="font-size:13px">';
+          for(const key of Object.keys(row)){
+            popupHtml += `<strong>${key}:</strong> ${row[key] ?? ''}<br/>`;
+          }
+          popupHtml += '</div>';
+          marker.bindPopup(popupHtml);
+          marker.addTo(factoryLayerGroup);
+          bounds.push([latN, lonN]);
+        }
+        resolve({bounds});
+      },
+      error: (err)=> reject(err)
+    });
+  });
+}
+
+/* ------------------- Toggle handlers ------------------- */
+document.getElementById('gcpToggle').addEventListener('change', async function(e){
+  const legendEl = document.getElementById('gcpLegend');
+  const chartWrap = document.getElementById('gcpChartWrap');
+
+  if(this.checked){
+    try {
+      // load data (if not loaded)
+      if(!gcpData) await loadGCPs();
+      gcpLayerGroup.addTo(map);
+
+      // show legend
+      legendEl.style.display = 'block';
+      // create chart data based on biomass ranges
+      const counts = biomassRanges.map(()=>0);
+      for(const r of gcpData){
+        const v = r.biomass_kg ?? r.BIOMASS_KG ?? r.biomass ?? r.Biomass ?? r.biomasskg ?? r.BIOMASS;
+        let matched = false;
+        // treat empty or invalid as Unknown (index 0)
+        if(v === null || v === '' || v === undefined || isNaN(Number(v))){
+          counts[0] += 1;
+          matched = true;
+        } else {
+          const num = Number(v);
+          for(let i=1;i<biomassRanges.length;i++){
+            if(biomassRanges[i].test(num)){
+              counts[i] += 1;
+              matched = true; break;
+            }
+          }
+        }
+        if(!matched && !(v===null||v===''||v===undefined)) counts[counts.length-1]++; // fallback to >250
+      }
+
+      // prepare chart
+      chartWrap.style.display = 'block';
+      updatePieChart(counts);
+      // fit map view to data
+      const coords = gcpLayerGroup.getLayers().map(m => m.getLatLng());
+      if(coords.length > 0){
+        const bounds = L.latLngBounds(coords);
+        map.fitBounds(bounds.pad(0.2));
+      }
+    } catch(err){
+      console.error(err);
+      alert('Error loading Ground Control Points: ' + err.message);
+      this.checked = false;
+    }
+  } else {
+    // hide legend + remove layer + hide chart
+    legendEl.style.display = 'none';
+    chartWrap.style.display = 'none';
+    map.removeLayer(gcpLayerGroup);
+  }
+});
+
+document.getElementById('factoryToggle').addEventListener('change', async function(e){
+  if(this.checked){
+    try {
+      await loadFactories();
+      factoryLayerGroup.addTo(map);
+      const coords = factoryLayerGroup.getLayers().map(m => m.getLatLng());
+      if(coords.length>0){
+        map.fitBounds(L.latLngBounds(coords).pad(0.2));
+      }
+    } catch(err){
+      console.error(err);
+      alert('Error loading beneficiaries: ' + err.message);
+      this.checked = false;
+    }
+  } else {
+    map.removeLayer(factoryLayerGroup);
+  }
+});
+
+/* ------------------- Chart: create/update ------------------- */
+let pieChart = null;
+function updatePieChart(counts){
+  const ctx = document.getElementById('gcpPieChart').getContext('2d');
+  const labels = biomassRanges.map(r => r.label);
+  const colors = biomassRanges.map(r => r.color);
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{ data: counts, backgroundColor: colors }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { callbacks: { label: (ctx)=>{
+          const label = ctx.label || '';
+          const value = ctx.raw ?? 0;
+          return `${label}: ${value}`;
+        }}}
+      }
+    }
+  });
+}
+
+/* ------------------- Inputs tab: raster layers (OFF by default) ------------------- */
+const inputTileUrls = {
+  lulc: 'https://earthengine.googleapis.com/v1/projects/treespecies-476012/maps/c9504921150c9b5515ac9f19a0e36cc8-eae76eca55c50fd697513ea9492d9a85/tiles/{z}/{x}/{y}',
+  biomass: 'https://earthengine.googleapis.com/v1/projects/treespecies-476012/maps/38f0f465ef363758b640cbcc70eb8bea-e2bb0a9339d2c12373e84a48f18c5cf3/tiles/{z}/{x}/{y}',
+  carbon: 'https://earthengine.googleapis.com/v1/projects/treespecies-476012/maps/6543de89b8b7fe158a0fe5a6238cd0b0-8ca0bfab5c299356b57187c4d72a4da9/tiles/{z}/{x}/{y}',
+  ndvi: 'https://earthengine.googleapis.com/v1/projects/treespecies-476012/maps/138e4b84c4c6b54e9313dd48c812dbc2-f2f5dcdb80098c429a9ed6c5198018f4/tiles/{z}/{x}/{y}'
+};
+
+const inputLayers = {
+  lulc: L.tileLayer(inputTileUrls.lulc, {opacity:0.7, maxZoom:19, zIndex: 200}),
+  biomass: L.tileLayer(inputTileUrls.biomass, {opacity:0.7, maxZoom:19, zIndex: 201}),
+  carbon: L.tileLayer(inputTileUrls.carbon, {opacity:0.7, maxZoom:19, zIndex: 202}),
+  ndvi: L.tileLayer(inputTileUrls.ndvi, {opacity:0.7, maxZoom:19, zIndex: 203})
+};
+
+function setupInputControl(toggleId, opacityId, layerKey){
+  const toggle = document.getElementById(toggleId);
+  const slider = document.getElementById(opacityId);
+  // Ensure slider updates the layer even if layer not added yet
+  slider.addEventListener('input', ()=>{
+    try{ inputLayers[layerKey].setOpacity(parseFloat(slider.value)); }catch(e){}
+  });
+  toggle.addEventListener('change', ()=>{
+    if(toggle.checked){
+      inputLayers[layerKey].addTo(map);
+      // apply current slider value
+      inputLayers[layerKey].setOpacity(parseFloat(slider.value));
+    } else {
+      try{ map.removeLayer(inputLayers[layerKey]); }catch(e){}
+    }
+  });
+}
+
+setupInputControl('lulcToggle','lulcOpacity','lulc');
+setupInputControl('biomassToggle','biomassOpacity','biomass');
+setupInputControl('carbonToggle','carbonOpacity','carbon');
+setupInputControl('ndviToggle','ndviOpacity','ndvi');
+
+
+/* Show/Hide LULC legend */
+document.getElementById('lulcToggle').addEventListener('change', function() {
+  const l = document.getElementById('lulcLegend');
+  if(this.checked){ l.style.display='block'; }
+  else { l.style.display='none'; }
+});
+
+/* ------------------- Preload nothing until toggled (keeps app light) ------------------- */
+
+
+/* Show/Hide LULC legend */
+document.getElementById('lulcToggle').addEventListener('change', function() {
+  const l = document.getElementById('lulcLegend');
+  if(this.checked){ l.style.display='block'; }
+  else { l.style.display='none'; }
+});
+
+/* ------------------- Preload nothing until toggled (keeps app light) ------------------- */
+
+/* ------------------- Helpful: expose load functions to console if needed */
+window.__debug = { loadGCPs, loadFactories, gcpData };
+
+/* ------------------- Notes for future: if you want auto-load on start, call loadGCPs() and add layer */ 
+</script>
+
+</body>
+</html>
