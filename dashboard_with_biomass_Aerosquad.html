@@ -221,16 +221,16 @@ tabEls.forEach(t => t.addEventListener('click', () => {
   document.getElementById(t.dataset.tab).style.display = 'block';
 }));
 
-/* ------------------- Sidebar toggle (full map) ------------------- */
-const sidebar = document.getElementById('sidebar');
-const toggleBtn = document.getElementById('toggleSidebar');
-toggleBtn.addEventListener('click', () => {
-  sidebar.classList.toggle('hidden');
-  const mapEl = document.getElementById('map');
-  mapEl.classList.toggle('fullscreen');
-  toggleBtn.textContent = mapEl.classList.contains('fullscreen') ? '⮜' : '⮞';
-  setTimeout(()=>map.invalidateSize(), 220);
-});
+// /* ------------------- Sidebar toggle (full map) ------------------- */
+// const sidebar = document.getElementById('sidebar');
+// const toggleBtn = document.getElementById('toggleSidebar');
+// toggleBtn.addEventListener('click', () => {
+//   sidebar.classList.toggle('hidden');
+//   const mapEl = document.getElementById('map');
+//   mapEl.classList.toggle('fullscreen');
+//   toggleBtn.textContent = mapEl.classList.contains('fullscreen') ? '⮜' : '⮞';
+//   setTimeout(()=>map.invalidateSize(), 220);
+// });
 
 /* ------------------- Geocoding simple search (Nominatim) ------------------- */
 document.getElementById('searchInput').addEventListener('keypress', function(e){
