@@ -87,29 +87,22 @@ button{background:linear-gradient(180deg,var(--primary-light),var(--primary));co
 
         <div class="toggle-row">
           <input type="checkbox" id="gcpToggle" />
-          <label for="gcpToggle" class="small-label">Show Ground Control Points (from GitHub CSV)</label>
+          <label for="gcpToggle" class="small-label">Show Ground Control Points </label>
         </div>
 
-        
+
     <div class="toggle-row">
       <input type="checkbox" id="bufferToggle" />
       <label for="bufferToggle" class="small-label">Show Biomass Range Extents (Rectangular Buffers)</label>
     </div>
 
     <!-- Legend (hidden until data loaded and toggled) -->
-    
+
         <div id="gcpLegend" class="legend" style="display:none;">
-          <strong>Biomass (kg) Legend</strong>
-          <div style="margin-top:6px;">
-            <div><i style="background:#fdae61"></i> Unknown</div>
-            <div><i style="background:#3288bd"></i> 10 - 50</div>
-            <div><i style="background:#66c2a5"></i> 50 - 100</div>
-            <div><i style="background:#abdda4"></i> 100 - 150</div>
-            <div><i style="background:#e6f598"></i> 150 - 200</div>
-            <div><i style="background:#fee08b"></i> 200 - 250</div>
-            <div><i style="background:#f46d43"></i> &gt; 250</div>
-          </div>
+          <!-- will be rendered dynamically -->
         </div>
+
+
 
         <!-- Pie Chart -->
         <div id="gcpChartWrap" class="chart-container" style="display:none;">
@@ -120,7 +113,7 @@ button{background:linear-gradient(180deg,var(--primary-light),var(--primary));co
       <!-- Biomass Map placeholder -->
       <div id="biomassMapTab" class="tabContent">
         <h3>Biomass Map</h3>
-        <p>This layer shows areas with varying vegetation biomass density. Greener areas represent high biomass (dense forest and vegetation), while lighter colors represent low biomass (open or degraded land).</p>
+        <p>This layer shows areas with varying vegetation biomass density. Greener areas represent high biomass  while lighter colors represent low biomass .</p>
         <div id="biomassLegend" class="legend" style="margin-top:10px;">
           <b>🌲 Biomass Density</b><br/>
           <div><span style="background:#00441b; width:15px; height:15px; display:inline-block;"></span> Very High Biomass</div>
@@ -161,7 +154,8 @@ button{background:linear-gradient(180deg,var(--primary-light),var(--primary));co
           <input type="checkbox" id="ndviToggle" />
           <label for="ndviToggle" class="small-label">NDVI (tiles)</label>
           <input type="range" id="ndviOpacity" min="0" max="1" step="0.1" value="0.7" style="margin-left:8px;flex:1;">
-        
+        </div>
+
 <div id="lulcLegend" class="legend" style="display:none; margin-top:10px;">
 <b>🌍 Land Use / Land Cover (LULC) Legend</b><br/>
 <div><i style="background:#e06422"></i> Built-up</div>
@@ -174,17 +168,15 @@ button{background:linear-gradient(180deg,var(--primary-light),var(--primary));co
 <div><i style="background:#2203c2"></i> Water</div>
 </div>
 
-</div>
-
       </div>
 
       <!-- BENEFICIARIES -->
       <div id="beneficiariesTab" class="tabContent">
-        <h3>Beneficiaries (Factory.csv)</h3>
+        <h3>Beneficiaries </h3>
 
         <div class="toggle-row">
           <input type="checkbox" id="factoryToggle" />
-          <label for="factoryToggle" class="small-label">Show Beneficiaries (from GitHub CSV)</label>
+          <label for="factoryToggle" class="small-label">Show Beneficiaries </label>
         </div>
 
         <div id="factoryInfo" style="margin-top:8px; font-size:13px; color:#333;">
@@ -195,19 +187,19 @@ button{background:linear-gradient(180deg,var(--primary-light),var(--primary));co
     </div>
   </div>
 
-  <!-- Toggle Sidebar button -->
-  <!-- <button id="toggleSidebar">⮜</button> -->
-
   <!-- MAP -->
   <div id="map"></div>
 </div>
 
 <script>
 /* ------------------- Map init ------------------- */
-const map = L.map('map').setView([-15.899413, 35.224002], 13);
+const map = L.map('map').setView([-15.899413, 35.224002], 15);
 
-const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' });
 const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains:['mt0','mt1','mt2','mt3'], attribution: '&copy; Google Satellite' });
+
+// keep Google Satellite as default base layer as requested
+googleSat.addTo(map);
 
 L.control.layers({ "OpenStreetMap": osm, "Google Satellite": googleSat }).addTo(map);
 
@@ -221,23 +213,11 @@ tabEls.forEach(t => t.addEventListener('click', () => {
   document.getElementById(t.dataset.tab).style.display = 'block';
 }));
 
-// /* ------------------- Sidebar toggle (full map) ------------------- */
-// const sidebar = document.getElementById('sidebar');
-// const toggleBtn = document.getElementById('toggleSidebar');
-// toggleBtn.addEventListener('click', () => {
-//   sidebar.classList.toggle('hidden');
-//   const mapEl = document.getElementById('map');
-//   mapEl.classList.toggle('fullscreen');
-//   toggleBtn.textContent = mapEl.classList.contains('fullscreen') ? '⮜' : '⮞';
-//   setTimeout(()=>map.invalidateSize(), 220);
-// });
-
 /* ------------------- Geocoding simple search (Nominatim) ------------------- */
 document.getElementById('searchInput').addEventListener('keypress', function(e){
   if(e.key === 'Enter'){
     const q = this.value.trim();
     if(!q) return;
-    // Use Nominatim to search
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ", Thyolo, Malawi")}`)
       .then(r => r.json())
       .then(res => {
@@ -269,43 +249,32 @@ function drawBuffers(){
   if(!gcpData) return;
   bufferLayerGroup.clearLayers();
 
-  const importantIDs = ['013','012','020','015','029','023','006','007','036','014','010','008','009'];
-
   // iterate through markers in gcpLayerGroup to ensure rectangles match visible markers
   const markerLayers = gcpLayerGroup.getLayers ? gcpLayerGroup.getLayers() : [];
-  for(const marker of markerLayers){
-    if(!marker || !marker.getLatLng) continue;
-    const ll = marker.getLatLng();
-    let lat = Number(ll.lat);
-    let lon = Number(ll.lng);
 
-    // try to get record attached to marker; fallback to matching gcpData by coordinates or id
-    const row = marker.record ?? (gcpData.find(r => {
-      // match by id if available
-      const rid = (r.id ?? r.ID ?? '').toString().trim();
-      if(rid && marker.options && marker.options.title && marker.options.title.includes(rid)) return true;
-      // else match by coordinates approximately
-      const rlat = Number(r.latitude ?? r.lat ?? r.Lat ?? r.Y ?? r.y);
-      const rlon = Number(r.longitude ?? r.lon ?? r.Longitude ?? r.X ?? r.x);
-      if(!isNaN(rlat) && !isNaN(rlon)){
-        return Math.abs(rlat - lat) < 1e-6 && Math.abs(rlon - lon) < 1e-6;
-      }
-      return false;
-    })) ?? {};
+  // if no markers in group (not added to map yet), fallback to using gcpData coordinates
+  const useRows = (markerLayers.length>0) ? markerLayers.map(m => m.record ?? null).filter(Boolean) : gcpData;
+
+  for(const row of useRows){
+    if(!row) continue;
+    const lat = Number(row.latitude ?? row.lat ?? row.LAT ?? row.Lat ?? row.Y ?? row.y);
+    const lon = Number(row.longitude ?? row.lon ?? row.long ?? row.LON ?? row.Lon ?? row.X ?? row.x);
+    if(Number.isNaN(lat) || Number.isNaN(lon)) continue;
 
     // parse biomass robustly
     const biomass = Number(row.biomass_kg ?? row.BIOMASS_KG ?? row.biomass ?? row.Biomass ?? row.biomasskg ?? row.BIOMASS ?? 0) || 0;
     const c = biomassColor(biomass);
 
-    // compute size based on biomass but ensure minimum visual size
-    let width = 30, height = 15; // default visible size
+    // compute size based on biomass but ensure minimum visual size (meters)
+    let width = 30, height = 15;
     if(biomass>=10 && biomass<=50){ width=30; height=15; }
-    else if(biomass>50 && biomass<=100){ width=40; height=20; }
-    else if(biomass>100 && biomass<=150){ width=60; height=30; }
-    else if(biomass>150 && biomass<=200){ width=80; height=40; }
-    else if(biomass>200 && biomass<=250){ width=100; height=50; }
-    else if(biomass>250){ width=120; height=60; }
-    else if(biomass === 0){ width = 24; height = 12; } // small but visible when biomass missing
+    else if(biomass>50 && biomass<=150){ width=40; height=20; }
+    else if(biomass>150 && biomass<=250){ width=60; height=30; }
+    else if(biomass>250 && biomass<=350){ width=80; height=40; }
+    else if(biomass>350 && biomass<=450){ width=100; height=50; }
+    else if(biomass>450 && biomass<=550){ width=120; height=60; }
+    else if(biomass>550){ width=140; height=70; }
+    else if(biomass === 0){ width = 24; height = 12; }
 
     const dLat = height / 111320;
     const dLon = width / (111320 * Math.cos(lat*Math.PI/180));
@@ -313,7 +282,7 @@ function drawBuffers(){
     const rectangle = L.rectangle([
       [lat - dLat, lon - dLon],
       [lat + dLat, lon + dLon]
-    ], { color: c, weight: 1, fillColor: c, fillOpacity: 0.4 });
+    ], { color: c, weight: 1, fillColor: c, fillOpacity: 0.45, pane: 'overlayPane' });
 
     let html = '<div style="font-size:13px">';
     for(const k in row) html += `<strong>${k}:</strong> ${row[k]}<br/>`;
@@ -328,15 +297,28 @@ function drawBuffers(){
 document.addEventListener('DOMContentLoaded', ()=>{
   const bufferToggle = document.getElementById('bufferToggle');
   if(bufferToggle){
+    // ensure checked by default as requested
+    bufferToggle.checked = true;
     bufferToggle.addEventListener('change', async function(){
       if(this.checked){
         if(!gcpData) await loadGCPs();
         drawBuffers();
         bufferLayerGroup.addTo(map);
       } else {
-        map.removeLayer(bufferLayerGroup);
+        try{ map.removeLayer(bufferLayerGroup); }catch(e){}
       }
     });
+
+    // if checked on load, ensure GCP data is loaded (for buffer info) and draw buffers
+    (async ()=>{
+      try{
+        if(!gcpData) await loadGCPs();
+        drawBuffers();
+        bufferLayerGroup.addTo(map);
+      }catch(e){
+        console.error('Error preloading buffers on start:', e);
+      }
+    })();
   }
 });
 
@@ -344,8 +326,8 @@ let factoryLayerGroup = L.layerGroup();
 
 /* Biomass legend colors and ranges */
 const biomassRanges = [
-  { label: 'Unknown', color: '#fdae61', test: v => v === null || v === '' || isNaN(v) },
-  { label: '10-50', color: '#3288bd', test: v => v >= 10 && v <= 50 },
+  // { label: 'Unknown', color: '#fdae61', test: v => v === null || v === '' || isNaN(v) },
+  // { label: '10-50', color: '#3288bd', test: v => v >= 10 && v <= 50 },
   { label: '50-100', color: '#66c2a5', test: v => v > 50 && v <= 100 },
   { label: '100-150', color: '#abdda4', test: v => v > 100 && v <= 150 },
   { label: '150-200', color: '#e6f598', test: v => v > 150 && v <= 200 },
@@ -364,6 +346,17 @@ function biomassColor(val){
     }
   }
   return '#999';
+}
+
+/* render dynamic GCP legend to match ranges */
+function renderGcpLegend(){
+  const el = document.getElementById('gcpLegend');
+  let html = '<strong>Biomass (kg) Legend</strong><div style="margin-top:6px;">';
+  for(const r of biomassRanges){
+    html += `<div><i style="background:${r.color}"></i> ${r.label}</div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 /* ------------------- Load GCP CSV and render points ------------------- */
@@ -385,7 +378,7 @@ function loadGCPs(){
           // Expect columns like latitude/longitude, or lat/lon variants. Try common names.
           const lat = row.latitude ?? row.lat ?? row.LAT ?? row.Lat ?? row.Y ?? row.y;
           const lon = row.longitude ?? row.lon ?? row.long ?? row.LON ?? row.Lon ?? row.X ?? row.x;
-          if(!lat || !lon) continue;
+          if(lat === undefined || lon === undefined) continue;
           const latN = Number(lat);
           const lonN = Number(lon);
           if(Number.isNaN(latN) || Number.isNaN(lonN)) continue;
@@ -414,6 +407,8 @@ function loadGCPs(){
           marker.addTo(gcpLayerGroup);
           bounds.push([latN, lonN]);
         }
+        // render legend now that data present
+        renderGcpLegend();
         resolve({bounds});
       },
       error: (err)=> reject(err)
@@ -476,7 +471,6 @@ document.getElementById('gcpToggle').addEventListener('change', async function(e
       for(const r of gcpData){
         const v = r.biomass_kg ?? r.BIOMASS_KG ?? r.biomass ?? r.Biomass ?? r.biomasskg ?? r.BIOMASS;
         let matched = false;
-        // treat empty or invalid as Unknown (index 0)
         if(v === null || v === '' || v === undefined || isNaN(Number(v))){
           counts[0] += 1;
           matched = true;
@@ -489,7 +483,7 @@ document.getElementById('gcpToggle').addEventListener('change', async function(e
             }
           }
         }
-        if(!matched && !(v===null||v===''||v===undefined)) counts[counts.length-1]++; // fallback to >250
+        if(!matched && !(v===null||v===''||v===undefined)) counts[counts.length-1]++;
       }
 
       // prepare chart
@@ -510,7 +504,7 @@ document.getElementById('gcpToggle').addEventListener('change', async function(e
     // hide legend + remove layer + hide chart
     legendEl.style.display = 'none';
     chartWrap.style.display = 'none';
-    map.removeLayer(gcpLayerGroup);
+    try{ map.removeLayer(gcpLayerGroup); }catch(e){}
   }
 });
 
@@ -529,7 +523,7 @@ document.getElementById('factoryToggle').addEventListener('change', async functi
       this.checked = false;
     }
   } else {
-    map.removeLayer(factoryLayerGroup);
+    try{ map.removeLayer(factoryLayerGroup); }catch(e){}
   }
 });
 
@@ -605,18 +599,6 @@ document.getElementById('lulcToggle').addEventListener('change', function() {
   if(this.checked){ l.style.display='block'; }
   else { l.style.display='none'; }
 });
-
-/* ------------------- Preload nothing until toggled (keeps app light) ------------------- */
-
-
-/* Show/Hide LULC legend */
-document.getElementById('lulcToggle').addEventListener('change', function() {
-  const l = document.getElementById('lulcLegend');
-  if(this.checked){ l.style.display='block'; }
-  else { l.style.display='none'; }
-});
-
-/* ------------------- Preload nothing until toggled (keeps app light) ------------------- */
 
 /* ------------------- Helpful: expose load functions to console if needed */
 window.__debug = { loadGCPs, loadFactories, gcpData };
