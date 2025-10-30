@@ -1,4 +1,4 @@
-Farm_ID,Name,Location,District,eastings,northings,Date,Type_of_Farming,Type_of_Irrigation,Crop,Area_Mapped,Fertility_Class,pH,TOTAL ALKALINITY (mg/l),MAGNESIUM MG2+ (mg/l),POTASSIUM K+ (mg/l),NITROGEN (N) mg/L,T/A
+Farm_ID,Name,Location,District,eastings,northings,Date,Type_of_Farming,Type_of_Irrigation,Crop,Area_Mapped,Fertility_Class,pH,TOTAL ALKALINITY (mg/l),MG,K ,N,T/A
 001,Mpatseabwire,Mpatseabwire,Blantyre,686075,8262782,28/02/2024,Commercial  Farming,Surface irrigation,Maize,2.02,high,7,25,30,90,10,SC Kambalame
 002,Mode,Mode,Blantyre,697780,8274890,12/3/2024,Commercial  Farming,Flood irrigation,Rice,4.04,high,7,45,32,95,12,Pemba
 003,Chilomoni,Chilomoni,Blantyre,712906,8255523,4/4/2024,Commercial  Farming,Furrow irrigation,Tobacco,10,high,7,60,34,100,14,Ndindi
@@ -399,3 +399,4 @@ Farm_ID,Name,Location,District,eastings,northings,Date,Type_of_Farming,Type_of_I
 398,,,,,,,,,,,,,,,,,
 399,,,,,,,,,,,,,,,,,
 400,,,,,,,,,,,,,,,,,
+
