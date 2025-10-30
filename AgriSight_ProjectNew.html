@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>AgriSight — Drone & GIS Smart Farming Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Font & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <!-- Proj4 for coordinate conversion -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.js"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#0f1724;
+      --muted:#98a0a8;
+      --accent:#28a745;
+      --glass: rgba(255,255,255,0.03);
+      --panel: rgba(12,18,30,0.85);
+      --round: 12px;
+    }
+    html,body,#map { height:100%; margin:0; padding:0; font-family:Inter,system-ui,-apple-system,Segoe UI, Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg,#081018 0%, #0b1220 100%);}
+    .topbar{
+      position: absolute; left: 20px; right: 20px; top: 14px;
+      display:flex; align-items:center; justify-content:space-between;
+      z-index: 1400;
+      padding:8px 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+      border-radius:14px; box-shadow: 0 6px 18px rgba(2,6,23,0.6); color: #e6eef1;
+      border: 1px solid rgba(255,255,255,0.03);
+      backdrop-filter: blur(6px);
+    }
+    .title { display:flex; gap:12px; align-items:center; }
+    .logo {
+      width:44px; height:44px; border-radius:10px; background:linear-gradient(135deg,#1db954,#0ea5a0);
+      display:flex; align-items:center; justify-content:center; font-weight:800; color:white; box-shadow: 0 6px 18px rgba(13,93,64,0.15);
+    }
+    .title h1{ margin:0; font-size:16px; font-weight:700; color:#fff;}
+    .title p{ margin:0; font-size:12px; color:var(--muted);}
+
+    /* Sidebar */
+    .sidebar {
+      position: absolute; left: 20px; top:74px; width:340px; height: calc(100% - 94px);
+      background: var(--panel); z-index: 1400; padding:12px; border-radius:14px;
+      color:#e6eef1; box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+      overflow: hidden; display:flex; flex-direction:column;
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    .sidebar .tabs { display:flex; gap:6px; margin-bottom:10px; }
+    .tab-btn {
+      background: transparent; border: none; padding:8px 10px; color:var(--muted);
+      border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    .tab-btn.active { background: rgba(255,255,255,0.03); color:#fff; box-shadow: inset 0 -2px 0 rgba(40,167,69,0.12); }
+    .tab-content { overflow:auto; padding:6px; flex:1; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:10px; padding:8px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.02); }
+    .section-title { font-size:13px; color:#cfeee1; margin-bottom:8px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+    .controls { display:flex; flex-direction:column; gap:8px; }
+
+    /* Legend */
+    .legendBox { padding:10px; border-radius:10px; background: rgba(0,0,0,0.35); color:#fff; font-size:13px; }
+    .legendBox .row { display:flex; gap:8px; align-items:center; margin:6px 0; }
+    .sw { width:18px; height:14px; display:inline-block; border-radius:3px; border:1px solid rgba(255,255,255,0.06); margin-right:8px; }
+    /* Map controls */
+    .map-control {
+      position: absolute; right: 20px; top: 20px; z-index: 1450; display:flex; flex-direction:column; gap:10px;
+    }
+    .control-btn {
+      background:var(--card); color:#e6eef1; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.02);
+      box-shadow: 0 6px 18px rgba(2,6,23,0.5); font-weight:600; cursor:pointer;
+    }
+    /* bottom info */
+    .footer {
+      position:absolute; left:20px; bottom:20px; z-index:1400; color:var(--muted); font-size:13px; background:var(--glass); padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.02);
+    }
+    /* responsive */
+    @media (max-width:900px){
+      .sidebar{ width:300px; left:12px; top:84px; height:calc(100% - 100px); }
+      .topbar { left:12px; right:12px; }
+    }
+    /* Small helper */
+    .muted { color:var(--muted); font-size:13px; }
+    a.inline { color: #bfeee2; text-decoration: none; font-weight:600; }
+    
+    /* Loading indicator */
+    .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-right: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    /* Data table styling */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    .data-table th, .data-table td { padding: 4px 6px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .data-table th { color: var(--accent); font-weight: 600; }
+    
+    /* Popup styling */
+    .leaflet-popup-content { font-size: 13px; max-width: 300px; }
+    .popup-title { color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+    .popup-section { margin: 8px 0; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; }
+    
+    /* Farm marker colors based on farming type */
+    .commercial-marker { background: #ff6b6b; border: 2px solid #fff; }
+    .subsistence-marker { background: #4ecdc4; border: 2px solid #fff; }
+    .default-marker { background: #ffd700; border: 2px solid #fff; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="topbar">
+    <div class="title">
+      <div class="logo">A</div>
+      <div>
+        <h1>AgriSight — Smart Farming Dashboard</h1>
+        <p>Drone · GIS · NDVI · LULC · Water Monitoring — Lilongwe</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div class="muted">Farm Data Loaded — <strong id="farmCount">Ready</strong></div>
+      <div style="font-size:12px;color:var(--muted)">v2.0</div>
+    </div>
+  </div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="layersTab">Layers</button>
+      <button class="tab-btn" data-tab="farmsTab">Farms</button>
+      <button class="tab-btn" data-tab="legendTab">Legend</button>
+      <button class="tab-btn" data-tab="dataTab">Data</button>
+    </div>
+
+    <div class="tab-content" id="layersTab">
+      <div class="card">
+        <div class="section-title">Base Maps</div>
+        <div class="controls" id="basemap-controls">
+          <!-- base maps list populated by JS -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Overlays</div>
+        <div class="controls">
+          <label><input type="checkbox" id="toggleLULC" checked> Show LULC</label>
+          <label><input type="checkbox" id="toggleGeology" checked> Show Geology</label>
+          <label><input type="checkbox" id="toggleWater" checked> Show Water Levels</label>
+          <label><input type="checkbox" id="toggleFarms" checked> Show Farms</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Map Tools</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="control-btn" id="zoomHome">Zoom Home</button>
+          <button class="control-btn" id="fitFarms">Fit Farms</button>
+          <button class="control-btn" id="showAllData">Show All Data</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="farmsTab" style="display:none">
+      <div class="card">
+        <div class="section-title">Farm Statistics <span id="farmStats" style="font-size:12px;color:var(--muted)"></span></div>
+        <div id="farmSummary" style="font-size:13px;color:#dff4ea">
+          Loading farm data...
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Farm Filter</div>
+        <div class="controls">
+          <select id="districtFilter" style="background: var(--card); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 6px; border-radius: 6px; width: 100%;">
+            <option value="all">All Districts</option>
+          </select>
+          <select id="cropFilter" style="background: var(--card); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 6px; border-radius: 6px; width: 100%; margin-top: 8px;">
+            <option value="all">All Crops</option>
+          </select>
+          <select id="farmingTypeFilter" style="background: var(--card); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 6px; border-radius: 6px; width: 100%; margin-top: 8px;">
+            <option value="all">All Farming Types</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Farm List <span id="farmListCount" style="font-size:12px;color:var(--muted)"></span></div>
+        <div id="farmList" style="max-height: 300px; overflow-y: auto; font-size: 13px;">
+          Loading farms...
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="legendTab" style="display:none">
+      <div class="card">
+        <div class="section-title">Farm Legend</div>
+        <div class="legendBox">
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#ff6b6b;border:2px solid white;"></div> Commercial Farming</div>
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#4ecdc4;border:2px solid white;"></div> Subsistence Farming</div>
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#ffd700;border:2px solid white;"></div> Other Farming</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Water Level Legend</div>
+        <div class="legendBox">
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#00ffff;border:2px solid white;"></div> Water Level ≤ 1m</div>
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#1de9b6;border:2px solid white;"></div> Water Level 1-3m</div>
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#ffd700;border:2px solid white;"></div> Water Level 3-5m</div>
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#ff8c00;border:2px solid white;"></div> Water Level 5-10m</div>
+          <div class="row"><div style="width:12px;height:12px;border-radius:50%;background:#ff3b30;border:2px solid white;"></div> Water Level > 10m</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="dataTab" style="display:none">
+      <div class="card">
+        <div class="section-title">Raw Data Preview</div>
+        <div id="csvPreview" style="font-size:11px;color:var(--muted); max-height: 400px; overflow-y: auto; font-family: monospace; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px;">
+          Data will appear here...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="map-control">
+    <button class="control-btn" id="legendToggle">Toggle Sidebar</button>
+    <button class="control-btn" id="exportPNG">Export Map</button>
+  </div>
+
+  <div class="footer">Developed by <strong>Hamza Nkhumbwa</strong> — AgriSight 2025</div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    // === Data URLs ===
+    const AGRI_CSV = "https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/agrisight.csv";
+    const WATER_CSV = "https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/malawi_monitoring_large.csv";
+    const GEOLOGY_GEOJSON = "https://raw.githubusercontent.com/naturalwaterresourcesauthority-del/dashboard/main/geology.geojson";
+    const LULC_TILES = "https://earthengine.googleapis.com/v1/projects/ee-gis-021-20/maps/4d8dabcf783c6878cc82e557c95f5a4a-41a34a437acf8b76626327e5448d51d8/tiles/{z}/{x}/{y}";
+
+    // Sample farm data (from your provided data)
+    const SAMPLE_FARM_DATA = `Farm_ID,Name,Location,District,eastings,northings,Date,Type_of_Farming,Type_of_Irrigation,Crop,Area_Mapped,Fertility_Class,pH
+001,Mpatseabwire,Mpatseabwire,Blantyre,686075,8262782,28/02/2024,Commercial Farming,Surface irrigation,Maize,2.02,high,7
+002,Mode,Mode,Blantyre,697780,8274890,12/3/2024,Commercial Farming,Flood irrigation,Rice,4.04,high,7
+003,Chilomoni,Chilomoni,Blantyre,712906,8255523,4/4/2024,Commercial Farming,Furrow irrigation,Tobacco,10,high,7
+004,Malaka,Malaka,Blantyre,719634,8285776,10/2/2025,Subsistence Farming,Basin irrigation,Groundnuts,20,medium,8
+005,Mzedi,Mzedi,Blantyre,725667,8255643,13/03/2025,Subsistence Farming,Border irrigation,Soya beans,3.02,medium,8
+006,Puwa,Puwa,Dedza,561423,8451337,14/04/2025,Subsistence Farming,Sprinkler irrigation,Sugarcane,3.8,medium,8
+007,Chifisi,Chifisi,Dedza,561542,8451292,28/02/2025,Subsistence Farming,Drip (trickle) irrigation,Cotton,5.03,medium,8
+008,Phalura,Phalura,Dedza,564730,8450400,12/3/2024,Subsistence Farming,Subsurface irrigation,Sweet potatoes,6.06,medium,6
+009,Chimkwita,Chimkwita,Dedza,565610,8449922,4/4/2024,Subsistence Farming,Manual irrigation,Cassava,4,medium,6
+010,Nkhaladzulu/Kamphinda,Nkhaladzulu/Kamphinda,Dedza,599503,8406816,10/2/2025,Subsistence Farming,Modern or smart irrigation,Beans,1.03,medium,5
+011,Phale,Phale,Dedza,601978,8413263,13/03/2026,Subsistence Farming,Surface irrigation,Tomatoes,2.04,medium,6
+012,Mbalame,Mbalame,Dedza,602580,8414994,14/04/2026,Subsistence Farming,Flood irrigation,Onions,0.5,medium,6
+013,Changamire,Changamire,Dedza,617552,8428320,28/02/2026,Subsistence Farming,Furrow irrigation,Cabbage,0.6,medium,5
+014,Mkukuntha,Mkukuntha,Dedza,617935,8429169,12/3/2024,Subsistence Farming,Basin irrigation,Pumpkins,0.9,low,13
+015,Linthipe,Linthipe,Dedza,621368,8430612,4/4/2024,Subsistence Farming,Border irrigation,Okra,0.45,low,13
+016,Gandali,Gandali,Dedza,621670,8425247,10/2/2025,Commercial Farming,Sprinkler irrigation,Mangoes,12.06,low,13
+017,Khuwi,Khuwi,Dedza,621909,8416651,13/03/2027,Commercial Farming,Drip (trickle) irrigation,Bananas,18.07,low,3
+018,Karonga 1,Karonga 1,Dedza,622076,8419892,14/04/2027,Commercial Farming,Subsurface irrigation,Papayas,20.07,high,7.5
+019,Chalakagalu,Chalakagalu,Dedza,622747,8416006,28/02/2027,Commercial Farming,Manual irrigation,Citrus (oranges, lemons),18.09,high,7.5
+020,Chamanga,Chamanga,Dedza,623072,8421428,12/3/2024,Commercial Farming,Modern or smart irrigation,Vegetables (mixed horticultural crops),0.9,high,7.5
+021,Mbalame,Mbalame,Dedza,623477,8418286,4/4/2024,Commercial Farming,Surface irrigation,Maize,5.03,high,7.5
+022,Paiwe,Paiwe,Dedza,624030,8420203,10/2/2025,Commercial Farming,Flood irrigation,Rice,3.05,low,3
+023,Chinkhuti,Chinkhuti,Dedza,625151,8435111,13/03/2028,Commercial Farming,Furrow irrigation,Tobacco,1.04,low,4
+024,Pinji,Pinji,Dedza,626801,8416971,14/04/2028,Commercial Farming,Basin irrigation,Groundnuts,6.05,low,4
+025,Lamusiteni,Lamusiteni,Dedza,633573,8409434,28/02/2028,Commercial Farming,Border irrigation,Soya beans,0.9,low,3
+026,Nengo,Nengo,Dedza,635148,8411539,12/3/2024,Subsistence Farming,Sprinkler irrigation,Sugarcane,2.04,high,7
+027,Jeremia,Jeremia,Dedza,635975,8414742,4/4/2024,Subsistence Farming,Drip (trickle) irrigation,Cotton,6.05,high,8
+028,Madauda,Madauda,Dedza,638758,8407171,10/2/2025,Subsistence Farming,Subsurface irrigation,Sweet potatoes,1.02,medium,7`;
+
+    // Initialize map
+    const map = L.map('map', { 
+      zoom: 8, 
+      center: [-13.9833, 33.7833], 
+      preferCanvas: true,
+      zoomControl: false
+    });
+
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Base maps
+    const baseMaps = {
+      "Carto Dark": L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OSM contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20
+      }),
+      "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }),
+      "Google Satellite": L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}', { attribution: 'Google' })
+    };
+
+    baseMaps["Carto Dark"].addTo(map);
+
+    // Populate base-map controls
+    const basemapContainer = document.getElementById('basemap-controls');
+    Object.keys(baseMaps).forEach((k, i) => {
+      const id = "bm_"+i;
+      const wrapper = document.createElement('label');
+      wrapper.style.display = "flex"; wrapper.style.alignItems="center"; wrapper.style.gap="8px";
+      wrapper.innerHTML = `<input type="radio" name="basemap" id="${id}" ${i===0?'checked':''}> ${k}`;
+      basemapContainer.appendChild(wrapper);
+      wrapper.querySelector('input').addEventListener('change', () => {
+        Object.values(baseMaps).forEach(bm=>map.removeLayer(bm));
+        baseMaps[k].addTo(map);
+      });
+    });
+
+    // Create panes
+    map.createPane('polygonsPane'); map.getPane('polygonsPane').style.zIndex = 450;
+    map.createPane('lulcPane'); map.getPane('lulcPane').style.zIndex = 420;
+    map.createPane('markersPane'); map.getPane('markersPane').style.zIndex = 470;
+
+    // LULC Layer
+    let lulcLayer = L.tileLayer(LULC_TILES, { pane: 'lulcPane', opacity: 0.85, attribution: 'LULC (GEE)'});
+    lulcLayer.addTo(map);
+
+    // Geology Layer
+    let geologyLayer = L.layerGroup();
+    fetch(GEOLOGY_GEOJSON).then(r=>r.json()).then(geojson=>{
+      geologyLayer = L.geoJSON(geojson, {
+        style: f => {
+          let c = "#ccc";
+          if(f.properties.Category==="Lake") c="#1f78b4";
+          if(f.properties.Category==="Metamorphic Rocks") c="#6a3d9a";
+          if(f.properties.Category==="Magmatic Intrusions") c="#e31a1c";
+          if(f.properties.Category==="Sedimentary Rocks") c="#ff7f00";
+          if(f.properties.Category==="Sediments") c="#33a02c";
+          return {color:c, weight:0.7, fillOpacity:0.6};
+        },
+        pane: 'polygonsPane'
+      });
+      geologyLayer.addTo(map);
+    });
+
+    // === UTM TO LAT/LON CONVERSION ===
+    // Define UTM Zone 36S (for Malawi)
+    proj4.defs("EPSG:32736", "+proj=utm +zone=36 +south +ellps=WGS84 +datum=WGS84 +units=m +no_defs");
+    proj4.defs("WGS84", "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
+
+    function convertUTMToLatLon(easting, northing) {
+        try {
+            // Convert UTM to WGS84
+            const source = 'EPSG:32736';
+            const target = 'WGS84';
+            const converted = proj4(source, target, [easting, northing]);
+            return [converted[1], converted[0]]; // Return as [lat, lon]
+        } catch (error) {
+            console.error('Coordinate conversion error:', error);
+            return null;
+        }
+    }
+
+    // Farm data handling
+    let farmMarkers = L.layerGroup();
+    let farmData = [];
+    let districts = new Set();
+    let crops = new Set();
+    let farmingTypes = new Set();
+
+    function loadFarmData() {
+        Papa.parse(SAMPLE_FARM_DATA, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                farmData = results.data;
+                console.log('Loaded farm data:', farmData);
+
+                let markersAdded = 0;
+                
+                farmData.forEach(farm => {
+                    const easting = parseFloat(farm.eastings);
+                    const northing = parseFloat(farm.northings);
+                    
+                    if (!isNaN(easting) && !isNaN(northing)) {
+                        const coords = convertUTMToLatLon(easting, northing);
+                        
+                        if (coords) {
+                            markersAdded++;
+                            
+                            // Determine marker color based on farming type
+                            let markerColor = '#ffd700'; // default
+                            let farmingType = (farm.Type_of_Farming || '').toLowerCase();
+                            
+                            if (farmingType.includes('commercial')) {
+                                markerColor = '#ff6b6b';
+                            } else if (farmingType.includes('subsistence')) {
+                                markerColor = '#4ecdc4';
+                            }
+                            
+                            // Create marker
+                            const marker = L.circleMarker(coords, {
+                                radius: 8,
+                                color: markerColor,
+                                fillColor: markerColor,
+                                weight: 2,
+                                opacity: 1,
+                                fillOpacity: 0.8,
+                                pane: 'markersPane'
+                            });
+                            
+                            // Create detailed popup
+                            let popup = `
+                                <div class="popup-title">${farm.Name} (${farm.Farm_ID})</div>
+                                <div class="popup-section">
+                                    <strong>Location:</strong> ${farm.Location}, ${farm.District}<br>
+                                    <strong>Coordinates:</strong> ${coords[0].toFixed(6)}, ${coords[1].toFixed(6)}<br>
+                                    <strong>UTM:</strong> ${easting}, ${northing}
+                                </div>
+                                <div class="popup-section">
+                                    <strong>Farming:</strong> ${farm.Type_of_Farming}<br>
+                                    <strong>Irrigation:</strong> ${farm.Type_of_Irrigation}<br>
+                                    <strong>Crop:</strong> ${farm.Crop}<br>
+                                    <strong>Area:</strong> ${farm.Area_Mapped} ha
+                                </div>
+                                <div class="popup-section">
+                                    <strong>Soil Fertility:</strong> ${farm.Fertility_Class}<br>
+                                    <strong>pH Level:</strong> ${farm.pH}<br>
+                                    <strong>Date Recorded:</strong> ${farm.Date}
+                                </div>
+                            `;
+                            
+                            marker.bindPopup(popup);
+                            
+                            // Add hover effects
+                            marker.on('mouseover', function() {
+                                this.setStyle({ fillOpacity: 1, weight: 3 });
+                            });
+                            marker.on('mouseout', function() {
+                                this.setStyle({ fillOpacity: 0.8, weight: 2 });
+                            });
+                            
+                            farmMarkers.addLayer(marker);
+                            
+                            // Add to filter sets
+                            if (farm.District) districts.add(farm.District);
+                            if (farm.Crop) crops.add(farm.Crop);
+                            if (farm.Type_of_Farming) farmingTypes.add(farm.Type_of_Farming);
+                        }
+                    }
+                });
+                
+                farmMarkers.addTo(map);
+                updateFarmStatistics();
+                updateFilterDropdowns();
+                updateFarmList();
+                
+                // Auto-fit to show all farms
+                if (markersAdded > 0) {
+                    setTimeout(() => {
+                        const bounds = farmMarkers.getBounds();
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds.pad(0.1));
+                        }
+                    }, 500);
+                }
+                
+                document.getElementById('farmCount').textContent = `${markersAdded} Farms`;
+            }
+        });
+    }
+
+    function updateFarmStatistics() {
+        const commercialFarms = farmData.filter(f => f.Type_of_Farming && f.Type_of_Farming.toLowerCase().includes('commercial')).length;
+        const subsistenceFarms = farmData.filter(f => f.Type_of_Farming && f.Type_of_Farming.toLowerCase().includes('subsistence')).length;
+        const totalArea = farmData.reduce((sum, farm) => sum + (parseFloat(farm.Area_Mapped) || 0), 0);
+        
+        document.getElementById('farmSummary').innerHTML = `
+            <div>🏭 Commercial Farms: ${commercialFarms}</div>
+            <div>🌾 Subsistence Farms: ${subsistenceFarms}</div>
+            <div>📊 Total Farms: ${farmData.length}</div>
+            <div>📐 Total Area: ${totalArea.toFixed(2)} ha</div>
+            <div>📍 Districts: ${districts.size}</div>
+            <div>🌱 Crop Types: ${crops.size}</div>
+        `;
+        document.getElementById('farmStats').textContent = `${farmData.length} farms`;
+    }
+
+    function updateFilterDropdowns() {
+        const districtSelect = document.getElementById('districtFilter');
+        const cropSelect = document.getElementById('cropFilter');
+        const farmingTypeSelect = document.getElementById('farmingTypeFilter');
+        
+        // Clear existing options (except "all")
+        while (districtSelect.children.length > 1) districtSelect.removeChild(districtSelect.lastChild);
+        while (cropSelect.children.length > 1) cropSelect.removeChild(cropSelect.lastChild);
+        while (farmingTypeSelect.children.length > 1) farmingTypeSelect.removeChild(farmingTypeSelect.lastChild);
+        
+        // Add districts
+        districts.forEach(district => {
+            const option = document.createElement('option');
+            option.value = district;
+            option.textContent = district;
+            districtSelect.appendChild(option);
+        });
+        
+        // Add crops
+        crops.forEach(crop => {
+            const option = document.createElement('option');
+            option.value = crop;
+            option.textContent = crop;
+            cropSelect.appendChild(option);
+        });
+        
+        // Add farming types
+        farmingTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            farmingTypeSelect.appendChild(option);
+        });
+    }
+
+    function updateFarmList() {
+        const container = document.getElementById('farmList');
+        const countElement = document.getElementById('farmListCount');
+        
+        let html = '<div style="display: flex; flex-direction: column; gap: 6px;">';
+        
+        farmData.slice(0, 15).forEach(farm => {
+            const farmingType = (farm.Type_of_Farming || '').toLowerCase();
+            let color = '#ffd700';
+            if (farmingType.includes('commercial')) color = '#ff6b6b';
+            if (farmingType.includes('subsistence')) color = '#4ecdc4';
+            
+            html += `
+                <div style="padding: 6px; background: rgba(255,255,255,0.05); border-radius: 6px; border-left: 3px solid ${color}; cursor: pointer;" 
+                     onclick="highlightFarm('${farm.Farm_ID}')">
+                    <strong>${farm.Name}</strong> (${farm.Farm_ID})<br>
+                    <small>${farm.District} • ${farm.Crop} • ${farm.Area_Mapped} ha</small>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        
+        if (farmData.length > 15) {
+            html += `<div style="margin-top: 8px; font-size: 11px; color: var(--muted);">
+                Showing first 15 of ${farmData.length} farms
+            </div>`;
+        }
+        
+        container.innerHTML = html;
+        countElement.textContent = `(${farmData.length} farms)`;
+    }
+
+    function highlightFarm(farmId) {
+        farmMarkers.eachLayer(marker => {
+            const popup = marker.getPopup();
+            if (popup && popup.getContent().includes(`(${farmId})`)) {
+                marker.openPopup();
+                map.setView(marker.getLatLng(), 13);
+                marker.setStyle({ fillOpacity: 1, weight: 4 });
+                setTimeout(() => marker.setStyle({ fillOpacity: 0.8, weight: 2 }), 2000);
+            }
+        });
+    }
+
+    function updateCSVPreview() {
+        if (farmData.length === 0) {
+            document.getElementById('csvPreview').innerHTML = 'No farm data available';
+            return;
+        }
+        
+        const sample = farmData.slice(0, 5);
+        let html = '<div style="font-family: monospace; font-size: 10px; line-height: 1.3;">';
+        
+        // Show headers
+        const headers = Object.keys(sample[0]);
+        html += '<div style="color: #28a745; margin-bottom: 5px;">' + headers.join(' | ') + '</div>';
+        
+        sample.forEach((row, index) => {
+            html += `<div style="margin-bottom: 5px; padding: 3px; background: rgba(255,255,255,0.05); border-radius: 3px;">`;
+            headers.forEach(header => {
+                html += `<span style="display: inline-block; min-width: 80px; margin-right: 8px;">${row[header] || ''}</span>`;
+            });
+            html += `</div>`;
+        });
+        
+        html += `</div><div style="font-size: 10px; color: var(--muted); margin-top: 8px;">
+            Showing first 5 of ${farmData.length} records
+        </div>`;
+        
+        document.getElementById('csvPreview').innerHTML = html;
+    }
+
+    // Water markers
+    let waterMarkers = L.layerGroup();
+    function loadWaterCSV(){
+        Papa.parse(WATER_CSV, {
+            download:true, header:true, dynamicTyping:true, skipEmptyLines:true,
+            complete: function(results){
+                const rows = results.data;
+                let loadedCount = 0;
+                
+                rows.forEach(r=>{
+                    const latKeys = ['latitude','lat','Latitude','LAT','y','Y'];
+                    const lonKeys = ['longitude','lon','lng','Longitude','LON','X','x','LONG'];
+                    let lat = null, lon = null;
+                    for(let k of latKeys) if(r[k] !== undefined && r[k] !== null && r[k] !== ''){ lat = parseFloat(r[k]); break; }
+                    for(let k of lonKeys) if(r[k] !== undefined && r[k] !== null && r[k] !== ''){ lon = parseFloat(r[k]); break; }
+                    if(!lat || !lon || isNaN(lat) || isNaN(lon)) return;
+                    
+                    loadedCount++;
+                    const level = r['static_water_level'] ?? r['WaterLevel'] ?? r['water_level'] ?? r['SWL'] ?? r['SWL_m'] ?? null;
+                    let col = '#1e90ff';
+                    if(level !== null && level !== undefined && !isNaN(level)){
+                        const v = Number(level);
+                        if(v <= 1) col = '#00ffff';
+                        else if(v <= 3) col = '#1de9b6';
+                        else if(v <= 5) col = '#ffd700';
+                        else if(v <= 10) col = '#ff8c00';
+                        else col = '#ff3b30';
+                    }
+                    const circle = L.circleMarker([lat,lon], {
+                        radius:6, color:col, fillColor: col, weight: 1, fillOpacity:0.9, pane:'markersPane'
+                    });
+                    let popup = `<div class="popup-title">Water Monitoring Point</div>`;
+                    for(const k in r) {
+                        if(r[k] !== null && r[k] !== undefined && r[k] !== '') {
+                            popup += `<strong>${k}</strong>: ${r[k]}<br/>`;
+                        }
+                    }
+                    circle.bindPopup(popup);
+                    waterMarkers.addLayer(circle);
+                });
+                
+                waterMarkers.addTo(map);
+            }
+        });
+    }
+
+    // Load data
+    loadFarmData();
+    loadWaterCSV();
+
+    // Event listeners
+    document.getElementById('toggleLULC').addEventListener('change', function(e){
+        e.target.checked ? map.addLayer(lulcLayer) : map.removeLayer(lulcLayer);
+    });
+    document.getElementById('toggleGeology').addEventListener('change', function(e){
+        e.target.checked ? map.addLayer(geologyLayer) : map.removeLayer(geologyLayer);
+    });
+    document.getElementById('toggleWater').addEventListener('change', function(e){
+        e.target.checked ? map.addLayer(waterMarkers) : map.removeLayer(waterMarkers);
+    });
+    document.getElementById('toggleFarms').addEventListener('change', function(e){
+        e.target.checked ? map.addLayer(farmMarkers) : map.removeLayer(farmMarkers);
+    });
+
+    document.getElementById('fitFarms').addEventListener('click', ()=>{
+        const bounds = farmMarkers.getBounds();
+        bounds.isValid() ? map.fitBounds(bounds.pad(0.1)) : alert('No farm data to fit');
+    });
+
+    document.getElementById('showAllData').addEventListener('click', ()=>{
+        const group = L.featureGroup();
+        [waterMarkers, farmMarkers, geologyLayer].forEach(layer => {
+            if (layer && layer.getLayers) {
+                layer.eachLayer(l => group.addLayer(l));
+            }
+        });
+        group.getLayers().length > 0 ? map.fitBounds(group.getBounds().pad(0.2)) : alert('No data to fit');
+    });
+
+    document.getElementById('zoomHome').addEventListener('click', ()=> map.setView([-13.9833,33.7833], 8));
+
+    // Filter event listeners
+    document.getElementById('districtFilter').addEventListener('change', applyFilters);
+    document.getElementById('cropFilter').addEventListener('change', applyFilters);
+    document.getElementById('farmingTypeFilter').addEventListener('change', applyFilters);
+
+    function applyFilters() {
+        const district = document.getElementById('districtFilter').value;
+        const crop = document.getElementById('cropFilter').value;
+        const farmingType = document.getElementById('farmingTypeFilter').value;
+        
+        farmMarkers.eachLayer(marker => {
+            const popupContent = marker.getPopup().getContent();
+            let show = true;
+            
+            if (district !== 'all' && !popupContent.includes(`<strong>Location:</strong> ${district}`)) {
+                show = false;
+            }
+            if (crop !== 'all' && !popupContent.includes(`<strong>Crop:</strong> ${crop}`)) {
+                show = false;
+            }
+            if (farmingType !== 'all' && !popupContent.includes(`<strong>Farming:</strong> ${farmingType}`)) {
+                show = false;
+            }
+            
+            if (show) {
+                map.addLayer(marker);
+            } else {
+                map.removeLayer(marker);
+            }
+        });
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(b=>{
+        b.addEventListener('click', ()=>{
+            document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+            b.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(tc=>tc.style.display='none');
+            document.getElementById(b.dataset.tab).style.display='block';
+            
+            if (b.dataset.tab === 'dataTab') {
+                updateCSVPreview();
+            }
+        });
+    });
+
+    document.getElementById('legendToggle').addEventListener('click', ()=>{
+        const s = document.getElementById('sidebar');
+        s.style.display = s.style.display === 'none' ? 'flex' : 'none';
+        document.getElementById('legendToggle').textContent = s.style.display === 'none' ? 'Show Sidebar' : 'Toggle Sidebar';
+    });
+
+    // Make highlightFarm function globally available
+    window.highlightFarm = highlightFarm;
+  </script>
+</body>
+</html>
